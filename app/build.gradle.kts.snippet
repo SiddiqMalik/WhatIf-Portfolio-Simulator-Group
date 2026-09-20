@@ -1,0 +1,39 @@
+// Dependency snippet — merge into your existing app/build.gradle.kts.
+// Versions omitted deliberately: use the Firebase BoM and the latest stable
+// versions from your Android Studio "Upgrade Assistant" / Version Catalog
+// rather than pinning numbers by hand here.
+
+plugins {
+    id("com.google.gms.google-services") // Required for Firebase; add the
+                                          // classpath in the project-level
+                                          // build.gradle.kts too.
+}
+
+dependencies {
+    // --- Jetpack Compose (BOM keeps all Compose artifacts in sync) ---
+    implementation(platform("androidx.compose:compose-bom:2024.09.00"))
+    implementation("androidx.activity:activity-compose:1.9.2")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
+
+    // --- Navigation ---
+    implementation("androidx.navigation:navigation-compose:2.8.1")
+
+    // --- Firebase (Auth, Firestore) ---
+    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+
+    // --- Google Sign-In via Credential Manager (current recommended API) ---
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    // --- Coroutines bridge for Firebase Task -> suspend/await ---
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
+    // --- Local preferences persistence ---
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+}
