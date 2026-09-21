@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # What-If Portfolio Simulator — Person 1: Core Android UI & Navigation
 
 Covers the assigned scope (25 marks):
