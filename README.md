@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # What-If Portfolio Simulator — Person 1: Core Android UI & Navigation
 
 Covers the assigned scope (25 marks):
@@ -67,3 +68,7 @@ composable as it's completed.
 - Google (2026). *Jetpack DataStore Preferences — Android Developers.*
 - Google (2026). *Navigation with Compose — Android Developers.*
 - Firebase (2026). *Authenticate Using Google Sign-In on Android.*
+=======
+# WhatIf-Portfolio-Simulator-Group
+
+>>>>>>> main

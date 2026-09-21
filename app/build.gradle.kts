@@ -51,6 +51,13 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            // Needed because ViewModels use Log; JVM tests throw without this.
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
@@ -66,6 +73,7 @@ dependencies {
 
     implementation("androidx.navigation:navigation-compose:2.8.1")
 
+    // Firebase Auth/Firestore
     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
@@ -85,6 +93,11 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Testing Dependencies
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 }
 
 // Dummy task to satisfy Android Studio's Gradle model builder lookup
