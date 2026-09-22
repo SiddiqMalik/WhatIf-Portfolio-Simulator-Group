@@ -67,3 +67,77 @@ composable as it's completed.
 - Google (2026). *Jetpack DataStore Preferences — Android Developers.*
 - Google (2026). *Navigation with Compose — Android Developers.*
 - Firebase (2026). *Authenticate Using Google Sign-In on Android.*
+
+# What-If Portfolio Simulator — Person 2: Custom Cloud REST API & Backend Integration
+
+Covers the assigned scope (25 marks):
+- Build & host the serverless REST API (Node.js/Express, hosted on Vercel)
+- Implement endpoints: `searchAssets`, `getAssetHistory`, `createSimulation`, and full CRUD
+- Connect the mobile app's network layer (Retrofit) to the cloud endpoints
+
+## How to run the backend
+
+1. `cd backend`, run `npm install`.
+2. Create `.env.local` with `FIREBASE_SERVICE_ACCOUNT_JSON`, `ALPHA_VANTAGE_KEY`,
+   and `COINGECKO_API_KEY` (see [Firebase Console](https://console.firebase.google.com)
+   → Project settings → Service accounts to generate the first one).
+3. Run locally: `node --env-file=.env.local local.js` (serves on
+   `http://localhost:3000`).
+4. Deploy: `vercel --prod` from the `backend` folder (requires a
+   [Vercel](https://vercel.com) account linked via `vercel login`).
+5. The live API the app talks to is already deployed at
+   `https://whatif-api.vercel.app` — no redeploy needed to run the Android app.
+
+## API Reference
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/v1/health` | No | Service health check |
+| GET | `/v1/whoami` | Yes | Verifies the caller's Firebase ID token |
+| GET | `/v1/cpi` | No | South African CPI index (Stats SA, Dec 2024=100 base) |
+| GET | `/v1/assets/search` | No | Searches stocks (Alpha Vantage) and/or crypto (CoinGecko) |
+| GET | `/v1/assets/:symbol/history` | No | Historical prices, cached in Firestore after first fetch |
+| POST | `/v1/simulations` | Yes | Runs a DCA backtest against real historical prices and CPI |
+| GET | `/v1/simulations` | Yes | Lists the signed-in user's saved simulations |
+| GET | `/v1/simulations/:id` | Yes | Retrieves one simulation |
+| PUT | `/v1/simulations/:id` | Yes | Updates a simulation's name or status |
+| DELETE | `/v1/simulations/:id` | Yes | Deletes a simulation |
+
+## What's real vs. known limitations
+
+| Piece | Status |
+|---|---|
+| All 10 endpoints above | Fully implemented, tested locally and against the live deployment |
+| Firebase Auth verification | Fully implemented — every protected route checks a real ID token via the Admin SDK |
+| Historical price caching | Fully implemented — Firestore `priceHistory` collection, populated on first request per symbol |
+| Equity daily history | Limited to the most recent ~100 trading days (Alpha Vantage free-tier restriction) — weekly/monthly intervals return full history and are used for longer simulations |
+| Crypto history | Limited to the past 365 days (CoinGecko free-tier restriction) |
+| Android integration | Fully implemented — `data/remote/` (Retrofit), `RemoteSimulationRepository`; Dashboard fetches via `GET /v1/simulations` |
+
+## Design notes
+
+- **Hosting change from Part 1**: the original design specified Firebase Cloud
+  Functions. That requires Firebase's paid Blaze plan, which wasn't available
+  to the team, so the same Express API is hosted on [Vercel](https://vercel.com)'s
+  free tier instead. Firebase Authentication and Firestore are unchanged.
+- **Backtest vs. projection**: `createSimulation` runs a historical
+  backtest — it fetches real recorded prices for each allocated asset and
+  buys units at the actual price on each contribution date, then compares the
+  result to real CPI data. This is distinct from the app's other simulation
+  tool, which projects forward from a user-assumed return rate.
+- **Firestore security rules**: `simulations`, `cpi`, and `priceHistory` are
+  API-only (the Admin SDK bypasses rules; direct client reads are denied).
+  Only `users/{uid}` profile data is directly readable/writable by the
+  signed-in user.
+- **Testing protected routes**: `backend/scripts/getTestToken.js` mints a
+  real Firebase ID token for a test user, used to exercise auth-protected
+  endpoints from the command line without the Android app.
+
+## References for adopted patterns (cite in your report)
+
+- Alpha Vantage (2026). *Stock Time Series APIs.*
+- CoinGecko (2026). *CoinGecko API Documentation.*
+- Firebase (2026). *Firebase Admin SDK — Verify ID Tokens.*
+- Firebase (2026). *Cloud Firestore Security Rules.*
+- Vercel (2026). *Deploying Node.js Serverless Functions.*
+- Square (2026). *Retrofit — A Type-Safe HTTP Client for Android.*
