@@ -50,7 +50,7 @@ Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` 
 
 ## System Architecture
 
-=======
+
 What-If Portfolio Simulator
 Android app for PROG7314 / OPSC7312 Part 2 — a portfolio "what-if" simulator that projects how an investment grows over time, both in nominal terms and adjusted for inflation (CPI).
 Overview
@@ -88,7 +88,7 @@ MockK 1.13.13	Mocking Firebase dependencies in tests
 kotlinx-coroutines-test	Coroutine/ViewModel test support
 GitHub Actions	CI — automated build + test on every push
 System Architecture
->>>>>>> dce8cee01353bd31e162faccaa45d5b44f18bcbc
+
 ```mermaid
 flowchart TD
     A[Android App - Jetpack Compose UI] --> B[ViewModels]
