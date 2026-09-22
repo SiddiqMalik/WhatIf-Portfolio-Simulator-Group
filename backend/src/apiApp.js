@@ -1,5 +1,6 @@
 import express from "express";
 import { requireAuth, getDb } from "./firebase.js";
+import { searchAssets } from "./assetSearch.js";
 
 const app = express();
 app.use(express.json());
@@ -27,6 +28,22 @@ app.get("/v1/cpi", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: { code: "internal_error", message: "Failed to load CPI data" } });
+  }
+});
+
+// Search stocks (Alpha Vantage) and/or crypto (CoinGecko). ?q=apple&type=all|equity|crypto
+app.get("/v1/assets/search", async (req, res) => {
+  const q = (req.query.q || "").toString().trim();
+  const type = (req.query.type || "all").toString();
+  if (!q) {
+    return res.status(400).json({ error: { code: "invalid_request", message: "Query parameter 'q' is required" } });
+  }
+  try {
+    const results = await searchAssets(q, type);
+    res.json({ query: q, type, results });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: { code: "internal_error", message: "Failed to search assets" } });
   }
 });
 
