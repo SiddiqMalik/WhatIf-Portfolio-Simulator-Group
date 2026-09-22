@@ -1,5 +1,6 @@
 package com.reztek.whatifportfolio.ui.simulation
 
+import android.app.Application
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,9 +36,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.data.local.SavedSimulationEntity
+import com.reztek.whatifportfolio.data.local.SimulationDatabase
+import com.reztek.whatifportfolio.data.local.SimulationRepository
 import com.reztek.whatifportfolio.data.remote.dto.SimulationDto
 import com.reztek.whatifportfolio.data.repository.RemoteSimulationRepository
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
@@ -52,23 +56,82 @@ import com.reztek.whatifportfolio.ui.theme.ErrorRed
 import com.reztek.whatifportfolio.ui.theme.SuccessGreen
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
+sealed interface SavedListItem {
+    val key: String
+    val title: String
+    val subtitle: String
+    val valueLabel: String
+    val chipLabel: String
+    val chipPositive: Boolean
+
+    data class Remote(val simulation: SimulationDto) : SavedListItem {
+        override val key = "remote-${simulation.id}"
+        override val title = simulation.name
+        override val subtitle = "${simulation.startDate} → ${simulation.endDate}"
+        override val valueLabel: String
+            get() = NumberFormat.getCurrencyInstance(Locale("en", "ZA")).format(simulation.finalValue)
+        override val chipLabel = "${"%.1f".format(simulation.percentReturn)}%"
+        override val chipPositive = simulation.percentReturn >= 0
+    }
+
+    data class Local(val entity: SavedSimulationEntity) : SavedListItem {
+        override val key = "local-${entity.id}"
+        override val title = entity.title
+        override val subtitle = "Future projection · ${entity.years}y @ ${entity.returnRate}%"
+        override val valueLabel: String
+            get() = NumberFormat.getCurrencyInstance(Locale("en", "ZA")).format(entity.finalNominalValue)
+        override val chipLabel = "On device"
+        override val chipPositive = true
+    }
+}
+
 sealed interface SavedListUiState {
     data object Loading : SavedListUiState
-    data class Ready(val items: List<SimulationDto>, val query: String = "") : SavedListUiState
+    data class Ready(val items: List<SavedListItem>, val query: String = "") : SavedListUiState
     data class Error(val message: String) : SavedListUiState
 }
 
 class SavedSimulationsViewModel(
-    private val repository: RemoteSimulationRepository = RemoteSimulationRepository()
-) : ViewModel() {
-    private val _uiState = MutableStateFlow<SavedListUiState>(SavedListUiState.Loading)
-    val uiState: StateFlow<SavedListUiState> = _uiState.asStateFlow()
+    application: Application
+) : AndroidViewModel(application) {
+    private val remote = RemoteSimulationRepository()
+    private val local = SimulationRepository(
+        SimulationDatabase.getDatabase(application).simulationDao()
+    )
+
+    private val _remoteItems = MutableStateFlow<List<SimulationDto>>(emptyList())
+    private val _query = MutableStateFlow("")
+    private val _loading = MutableStateFlow(true)
+    private val _error = MutableStateFlow<String?>(null)
+
+    val uiState: StateFlow<SavedListUiState> = combine(
+        _loading,
+        _error,
+        _remoteItems,
+        local.allSimulations,
+        _query
+    ) { loading, error, remoteItems, localItems, query ->
+        when {
+            loading && remoteItems.isEmpty() && localItems.isEmpty() -> SavedListUiState.Loading
+            error != null && remoteItems.isEmpty() && localItems.isEmpty() ->
+                SavedListUiState.Error(error)
+            else -> {
+                val merged = buildList {
+                    addAll(remoteItems.map { SavedListItem.Remote(it) })
+                    addAll(localItems.map { SavedListItem.Local(it) })
+                }
+                SavedListUiState.Ready(merged, query)
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SavedListUiState.Loading)
 
     init {
         refresh()
@@ -76,34 +139,39 @@ class SavedSimulationsViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = SavedListUiState.Loading
+            _loading.value = true
+            _error.value = null
             try {
-                _uiState.value = SavedListUiState.Ready(repository.listSimulations())
+                _remoteItems.value = remote.listSimulations()
             } catch (e: Exception) {
-                _uiState.value = SavedListUiState.Error(
-                    e.localizedMessage ?: "Couldn't load saved simulations."
-                )
+                // Keep local projections visible even if the API is unreachable.
+                if (_remoteItems.value.isEmpty()) {
+                    _error.value = e.localizedMessage ?: "Couldn't load cloud simulations."
+                }
+            } finally {
+                _loading.value = false
             }
         }
     }
 
     fun onQueryChanged(query: String) {
-        val current = _uiState.value
-        if (current is SavedListUiState.Ready) {
-            _uiState.value = current.copy(query = query)
-        }
+        _query.value = query
     }
 
-    fun delete(id: String) {
+    fun delete(item: SavedListItem) {
         viewModelScope.launch {
-            try {
-                repository.deleteSimulation(id)
-                val current = _uiState.value
-                if (current is SavedListUiState.Ready) {
-                    _uiState.value = current.copy(items = current.items.filterNot { it.id == id })
+            when (item) {
+                is SavedListItem.Remote -> {
+                    try {
+                        remote.deleteSimulation(item.simulation.id)
+                        _remoteItems.value = _remoteItems.value.filterNot { it.id == item.simulation.id }
+                    } catch (_: Exception) {
+                        refresh()
+                    }
                 }
-            } catch (_: Exception) {
-                refresh()
+                is SavedListItem.Local -> {
+                    local.deleteSimulationById(item.entity.id)
+                }
             }
         }
     }
@@ -118,7 +186,6 @@ fun SavedSimulationsScreen(
     viewModel: SavedSimulationsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val currency = NumberFormat.getCurrencyInstance(Locale("en", "ZA"))
 
     Scaffold(
         bottomBar = {
@@ -142,7 +209,7 @@ fun SavedSimulationsScreen(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                "Search, reopen, rerun, or delete your scenarios.",
+                "Cloud historical runs and on-device future projections.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
@@ -171,28 +238,30 @@ fun SavedSimulationsScreen(
                     Spacer(Modifier.height(12.dp))
                     val filtered = state.items.filter {
                         state.query.isBlank() ||
-                            it.name.contains(state.query, ignoreCase = true)
+                            it.title.contains(state.query, ignoreCase = true)
                     }
                     if (filtered.isEmpty()) {
                         EmptyState(
                             title = "No saved simulations",
-                            subtitle = "Run a historical scenario from Home to see it here."
+                            subtitle = "Run a historical backtest or save a future projection from the builder."
                         )
                     } else {
                         LazyColumn(
                             contentPadding = PaddingValues(bottom = 24.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            items(filtered, key = { it.id }) { sim ->
+                            items(filtered, key = { it.key }) { item ->
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { value ->
                                         when (value) {
                                             SwipeToDismissBoxValue.EndToStart -> {
-                                                viewModel.delete(sim.id)
+                                                viewModel.delete(item)
                                                 true
                                             }
                                             SwipeToDismissBoxValue.StartToEnd -> {
-                                                onRerun(sim.id)
+                                                if (item is SavedListItem.Remote) {
+                                                    onRerun(item.simulation.id)
+                                                }
                                                 false
                                             }
                                             else -> false
@@ -208,10 +277,18 @@ fun SavedSimulationsScreen(
                                             Modifier
                                                 .fillMaxSize()
                                                 .padding(horizontal = 8.dp),
-                                            contentAlignment = if (towardEnd) Alignment.CenterEnd else Alignment.CenterStart
+                                            contentAlignment = if (towardEnd) {
+                                                Alignment.CenterEnd
+                                            } else {
+                                                Alignment.CenterStart
+                                            }
                                         ) {
                                             Icon(
-                                                imageVector = if (towardEnd) Icons.Filled.Delete else Icons.Filled.Refresh,
+                                                imageVector = if (towardEnd) {
+                                                    Icons.Filled.Delete
+                                                } else {
+                                                    Icons.Filled.Refresh
+                                                },
                                                 contentDescription = null,
                                                 tint = if (towardEnd) ErrorRed else TealPrimary
                                             )
@@ -226,12 +303,16 @@ fun SavedSimulationsScreen(
                                         elevation = CardDefaults.cardElevation(0.dp),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { onOpenSimulation(sim.id) }
+                                            .clickable {
+                                                if (item is SavedListItem.Remote) {
+                                                    onOpenSimulation(item.simulation.id)
+                                                }
+                                            }
                                     ) {
                                         Column(Modifier.padding(16.dp)) {
-                                            Text(sim.name, fontWeight = FontWeight.SemiBold)
+                                            Text(item.title, fontWeight = FontWeight.SemiBold)
                                             Text(
-                                                "${sim.startDate} → ${sim.endDate}",
+                                                item.subtitle,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                                             )
@@ -241,13 +322,13 @@ fun SavedSimulationsScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    currency.format(sim.finalValue),
+                                                    item.valueLabel,
                                                     color = TealPrimary,
                                                     fontWeight = FontWeight.Medium
                                                 )
                                                 StatusChip(
-                                                    text = "${"%.1f".format(sim.percentReturn)}%",
-                                                    color = if (sim.percentReturn >= 0) SuccessGreen else ErrorRed
+                                                    text = item.chipLabel,
+                                                    color = if (item.chipPositive) SuccessGreen else ErrorRed
                                                 )
                                             }
                                         }

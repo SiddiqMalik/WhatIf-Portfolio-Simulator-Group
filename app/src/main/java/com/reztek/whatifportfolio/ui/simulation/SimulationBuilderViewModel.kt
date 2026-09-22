@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import retrofit2.HttpException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -42,12 +44,18 @@ data class SimulationBuilderUiState(
 
     val isValid: Boolean
         get() = fieldErrors.isEmpty() &&
-                allocationError == null &&
-                allocations.isNotEmpty() &&
-                kotlin.math.abs(allocationTotal - 100.0) <= 0.5 &&
-                (initialInvestment.toDoubleOrNull() ?: -1.0) > 0 &&
-                (recurringContribution.toDoubleOrNull() ?: -1.0) >= 0 &&
-                name.isNotBlank()
+            allocationError == null &&
+            allocations.isNotEmpty() &&
+            kotlin.math.abs(allocationTotal - 100.0) <= 0.5 &&
+            (initialInvestment.toDoubleOrNull() ?: -1.0) > 0 &&
+            (recurringContribution.toDoubleOrNull() ?: -1.0) >= 0 &&
+            name.isNotBlank()
+
+    /** Future-projection mode only needs a name and positive initial capital. */
+    val isProjectionValid: Boolean
+        get() = name.isNotBlank() &&
+            (initialInvestment.toDoubleOrNull() ?: -1.0) > 0 &&
+            (recurringContribution.toDoubleOrNull() ?: -1.0) >= 0
 }
 
 data class AssetSelectorUiState(
@@ -199,10 +207,23 @@ class SimulationBuilderViewModel(
         return state.results.filter { it.symbol in state.selected }
     }
 
-    fun runSimulation() {
+    /**
+     * Creates a historical simulation via the API.
+     * @param alsoSave when true, marks the new simulation as saved so it appears in Saved.
+     */
+    fun runSimulation(alsoSave: Boolean = false) {
         revalidate()
         val state = _uiState.value
-        if (!state.isValid) return
+        if (!state.isValid) {
+            _uiState.update {
+                it.copy(
+                    runError = it.allocationError
+                        ?: it.fieldErrors.values.firstOrNull()
+                        ?: "Add a name, assets totaling 100%, and valid dates to run."
+                )
+            }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isRunning = true, runError = null, createdSimulationId = null) }
@@ -223,7 +244,13 @@ class SimulationBuilderViewModel(
                         )
                     }
                 )
-                val created = repository.createSimulation(request)
+                var created = repository.createSimulation(request)
+                if (alsoSave) {
+                    created = repository.updateSimulation(
+                        created.id,
+                        mapOf("status" to "saved", "name" to created.name)
+                    )
+                }
                 _uiState.update {
                     it.copy(isRunning = false, createdSimulationId = created.id)
                 }
@@ -231,7 +258,7 @@ class SimulationBuilderViewModel(
                 _uiState.update {
                     it.copy(
                         isRunning = false,
-                        runError = e.localizedMessage ?: "Couldn't run the simulation. Try again."
+                        runError = friendlyError(e)
                     )
                 }
             }
@@ -258,7 +285,7 @@ class SimulationBuilderViewModel(
                 it.copy(
                     isSearching = false,
                     results = emptyList(),
-                    error = e.localizedMessage ?: "Search failed"
+                    error = friendlyError(e)
                 )
             }
         }
@@ -292,6 +319,29 @@ class SimulationBuilderViewModel(
             }
 
             state.copy(fieldErrors = errors, allocationError = allocationError)
+        }
+    }
+
+    companion object {
+        fun friendlyError(e: Exception): String {
+            if (e is HttpException) {
+                val body = runCatching { e.response()?.errorBody()?.string() }.getOrNull()
+                val apiMessage = body?.let { raw ->
+                    runCatching {
+                        val json = JSONObject(raw)
+                        json.optJSONObject("error")?.optString("message")
+                            ?.takeIf { it.isNotBlank() }
+                            ?: json.optString("message").takeIf { it.isNotBlank() }
+                    }.getOrNull()
+                }
+                return when {
+                    !apiMessage.isNullOrBlank() -> apiMessage
+                    e.code() == 401 || e.code() == 403 -> "Please sign in again to run simulations."
+                    e.code() == 502 -> "Market data provider failed. Try again in a moment."
+                    else -> "Couldn't run the simulation (HTTP ${e.code()})."
+                }
+            }
+            return e.localizedMessage ?: "Couldn't run the simulation. Try again."
         }
     }
 }

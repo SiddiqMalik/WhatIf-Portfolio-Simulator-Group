@@ -96,6 +96,11 @@ fun WhatIfNavGraph(
                     navController.navigate(Destination.SimulationResults.createRoute(id)) {
                         popUpTo(Destination.SimulationBuilder.route) { inclusive = true }
                     }
+                },
+                onLocalSaved = {
+                    navController.navigate(Destination.SavedSimulations.route) {
+                        popUpTo(Destination.Dashboard.route)
+                    }
                 }
             )
         }
