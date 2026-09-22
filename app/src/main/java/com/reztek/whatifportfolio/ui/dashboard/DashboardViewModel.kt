@@ -4,15 +4,14 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.reztek.whatifportfolio.data.repository.SimulationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import java.time.Instant
 
-/** A lightweight row model for a simulation summary — enough to render a Dashboard list row. */
+/** A lightweight row model for a simulation summary - enough to render a Dashboard list row. */
 data class SimulationSummary(
     val id: String,
     val name: String,
@@ -33,20 +32,23 @@ sealed interface DashboardUiState {
 /**
  * State holder for the Home/Dashboard screen.
  *
- * Per Deliverable 3 (Screen 2 spec): reads the 3 most recently updated
- * documents from the signed-in user's `simulations` subcollection, ordered
- * by `updatedAt` descending. This is a ONE-TIME fetch (not a live listener)
- * — the Dashboard is a snapshot/landing view; the Saved Simulations List is
- * where a live listener belongs, per its own spec.
+ * Per Deliverable 3 (Screen 2 spec): shows the 3 most recently updated
+ * simulations. Data comes from the custom REST API (GET /v1/simulations)
+ * rather than a direct Firestore read - Firestore security rules restrict
+ * the `simulations` subcollection to the API's Admin SDK only, per the
+ * project's architecture (the API does the heavy lifting). This is a
+ * ONE-TIME fetch (not a live listener) - the Dashboard is a snapshot/
+ * landing view; the Saved Simulations List is where a live listener
+ * belongs, per its own spec.
  */
 class DashboardViewModel(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val simulationRepository: SimulationRepository = SimulationRepository(),
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "DashboardViewModel"
-        private const val RECENT_SIMULATIONS_LIMIT = 3L
+        private const val RECENT_SIMULATIONS_LIMIT = 3
     }
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -70,21 +72,20 @@ class DashboardViewModel(
 
         viewModelScope.launch {
             try {
-                val snapshot = firestore
-                    .collection("users").document(user.uid)
-                    .collection("simulations")
-                    .orderBy("updatedAt", Query.Direction.DESCENDING)
-                    .limit(RECENT_SIMULATIONS_LIMIT)
-                    .get()
-                    .await()
+                val simulations = simulationRepository.listSimulations()
 
-                val summaries = snapshot.documents.mapNotNull { doc ->
-                    val name = doc.getString("name") ?: return@mapNotNull null
-                    val finalValue = doc.getDouble("finalValue") ?: 0.0
-                    val percentReturn = doc.getDouble("percentReturn") ?: 0.0
-                    val updatedAt = doc.getTimestamp("updatedAt")?.toDate()?.time ?: 0L
-                    SimulationSummary(doc.id, name, finalValue, percentReturn, updatedAt)
-                }
+                val summaries = simulations
+                    .sortedByDescending { runCatching { Instant.parse(it.updatedAt).toEpochMilli() }.getOrDefault(0L) }
+                    .take(RECENT_SIMULATIONS_LIMIT)
+                    .map { dto ->
+                        SimulationSummary(
+                            id = dto.id,
+                            name = dto.name,
+                            finalValue = dto.finalValue,
+                            percentReturn = dto.percentReturn,
+                            updatedAtMillis = runCatching { Instant.parse(dto.updatedAt).toEpochMilli() }.getOrDefault(0L)
+                        )
+                    }
 
                 Log.i(TAG, "Loaded ${summaries.size} recent simulation(s)")
                 _uiState.value = DashboardUiState.Loaded(
