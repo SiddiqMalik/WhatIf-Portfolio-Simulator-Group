@@ -1,41 +1,31 @@
 package com.reztek.whatifportfolio.ui.dashboard
 
-import com.google.android.gms.tasks.Tasks
-import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.CollectionReference
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.QuerySnapshot
 import com.reztek.whatifportfolio.MainDispatcherRule
+import com.reztek.whatifportfolio.data.remote.dto.SimulationDto
+import com.reztek.whatifportfolio.data.repository.RemoteSimulationRepository
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import java.util.Date
 
 // Tests for DashboardViewModel. It loads data in its init block, so mocks
-// must be set up before the ViewModel is constructed.
+// must be set up before the ViewModel is constructed. Data now comes from
+// RemoteSimulationRepository (our REST API), not Firestore directly.
 class DashboardViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var auth: FirebaseAuth
-    private lateinit var firestore: FirebaseFirestore
-    private lateinit var usersCollection: CollectionReference
-    private lateinit var userDocument: DocumentReference
-    private lateinit var simulationsCollection: CollectionReference
-    private lateinit var orderedQuery: Query
-    private lateinit var limitedQuery: Query
+    private lateinit var simulationRepository: RemoteSimulationRepository
 
     private companion object {
         const val TEST_UID = "uid-12345"
@@ -44,55 +34,46 @@ class DashboardViewModelTest {
     @Before
     fun setUp() {
         auth = mockk(relaxed = true)
-        firestore = mockk()
-        usersCollection = mockk()
-        userDocument = mockk()
-        simulationsCollection = mockk()
-        orderedQuery = mockk()
-        limitedQuery = mockk()
+        simulationRepository = mockk()
 
         val user = mockk<FirebaseUser>(relaxed = true)
         every { user.uid } returns TEST_UID
         every { user.displayName } returns "David Nkosi"
         every { auth.currentUser } returns user
-
-        every { firestore.collection("users") } returns usersCollection
-        every { usersCollection.document(TEST_UID) } returns userDocument
-        every { userDocument.collection("simulations") } returns simulationsCollection
-        every {
-            simulationsCollection.orderBy("updatedAt", Query.Direction.DESCENDING)
-        } returns orderedQuery
-        every { orderedQuery.limit(3L) } returns limitedQuery
     }
 
-    /** Builds a mock Firestore document with the fields the Dashboard maps. */
-    private fun simulationDocument(
+    /** Builds a DTO exactly as the API would return it, with sensible defaults. */
+    private fun sampleDto(
         id: String,
-        name: String?,
-        finalValue: Double? = 10_000.0,
-        percentReturn: Double? = 12.5,
-        updatedAtMillis: Long? = 1_700_000_000_000L
-    ): DocumentSnapshot = mockk<DocumentSnapshot>(relaxed = true).also { doc ->
-        every { doc.id } returns id
-        every { doc.getString("name") } returns name
-        every { doc.getDouble("finalValue") } returns finalValue
-        every { doc.getDouble("percentReturn") } returns percentReturn
-        every { doc.getTimestamp("updatedAt") } returns updatedAtMillis?.let { millis ->
-            mockk<Timestamp>().also { ts -> every { ts.toDate() } returns Date(millis) }
-        }
-    }
-
-    private fun stubSnapshotWith(documents: List<DocumentSnapshot>) {
-        val snapshot = mockk<QuerySnapshot>()
-        every { snapshot.documents } returns documents
-        every { limitedQuery.get() } returns Tasks.forResult(snapshot)
-    }
+        name: String = "Sample simulation",
+        finalValue: Double = 10_000.0,
+        percentReturn: Double = 12.5,
+        updatedAt: String = "2024-01-01T00:00:00Z"
+    ): SimulationDto = SimulationDto(
+        id = id,
+        name = name,
+        startDate = "2023-01-01T00:00:00Z",
+        endDate = "2024-01-01T00:00:00Z",
+        initialInvestment = 1_000.0,
+        recurringContribution = 100.0,
+        frequency = "monthly",
+        status = "active",
+        totalContributed = 2_200.0,
+        finalValue = finalValue,
+        profitLoss = finalValue - 2_200.0,
+        percentReturn = percentReturn,
+        realValue = finalValue,
+        realProfitLoss = finalValue - 2_200.0,
+        realReturnPct = percentReturn,
+        createdAt = "2023-01-01T00:00:00Z",
+        updatedAt = updatedAt
+    )
 
     @Test
     fun loadDashboard_whenNoAuthenticatedUser_emitsSignedOutError() {
         every { auth.currentUser } returns null
 
-        val viewModel = DashboardViewModel(firestore, auth)
+        val viewModel = DashboardViewModel(simulationRepository, auth)
 
         val state = viewModel.uiState.value
         assertTrue(state is DashboardUiState.Error)
@@ -100,30 +81,28 @@ class DashboardViewModelTest {
     }
 
     @Test
-    fun loadDashboard_whenNoAuthenticatedUser_doesNotQueryFirestore() {
+    fun loadDashboard_whenNoAuthenticatedUser_doesNotCallRepository() {
         every { auth.currentUser } returns null
 
-        DashboardViewModel(firestore, auth)
+        DashboardViewModel(simulationRepository, auth)
 
-        verify(exactly = 0) { firestore.collection(any()) }
+        coVerify(exactly = 0) { simulationRepository.listSimulations() }
     }
 
     @Test
-    fun loadDashboard_withValidDocuments_mapsThemToSimulationSummaries() =
+    fun loadDashboard_withValidSimulations_mapsThemToSimulationSummaries() =
         runTest(mainDispatcherRule.testDispatcher) {
-            stubSnapshotWith(
-                listOf(
-                    simulationDocument(
-                        id = "sim-1",
-                        name = "Tech heavy 10yr",
-                        finalValue = 152_340.75,
-                        percentReturn = 52.34,
-                        updatedAtMillis = 1_700_000_000_000L
-                    )
+            coEvery { simulationRepository.listSimulations() } returns listOf(
+                sampleDto(
+                    id = "sim-1",
+                    name = "Tech heavy 10yr",
+                    finalValue = 152_340.75,
+                    percentReturn = 52.34,
+                    updatedAt = "2023-11-14T22:13:20Z"
                 )
             )
 
-            val viewModel = DashboardViewModel(firestore, auth)
+            val viewModel = DashboardViewModel(simulationRepository, auth)
 
             val state = viewModel.uiState.value
             assertTrue(state is DashboardUiState.Loaded)
@@ -136,56 +115,36 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun loadDashboard_requestsThreeMostRecentSimulationsForSignedInUser() =
+    fun loadDashboard_sortsByUpdatedAtDescendingAndTakesTop3() =
         runTest(mainDispatcherRule.testDispatcher) {
-            stubSnapshotWith(emptyList())
-
-            DashboardViewModel(firestore, auth)
-
-            verify { usersCollection.document(TEST_UID) }
-            verify { simulationsCollection.orderBy("updatedAt", Query.Direction.DESCENDING) }
-            verify { orderedQuery.limit(3L) }
-        }
-
-    @Test
-    fun loadDashboard_dropsDocumentsWithoutAName() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            // A doc with no name shouldn't show up as a blank row.
-            stubSnapshotWith(
-                listOf(
-                    simulationDocument(id = "sim-good", name = "Balanced 5yr"),
-                    simulationDocument(id = "sim-broken", name = null)
-                )
+            coEvery { simulationRepository.listSimulations() } returns listOf(
+                sampleDto(id = "sim-oldest", updatedAt = "2021-01-01T00:00:00Z"),
+                sampleDto(id = "sim-newest", updatedAt = "2024-01-01T00:00:00Z"),
+                sampleDto(id = "sim-middle", updatedAt = "2022-01-01T00:00:00Z"),
+                sampleDto(id = "sim-second-newest", updatedAt = "2023-01-01T00:00:00Z")
             )
 
-            val viewModel = DashboardViewModel(firestore, auth)
+            val viewModel = DashboardViewModel(simulationRepository, auth)
 
             val loaded = viewModel.uiState.value as DashboardUiState.Loaded
-            assertEquals(1, loaded.recentSimulations.size)
-            assertEquals("sim-good", loaded.recentSimulations.single().id)
+            assertEquals(3, loaded.recentSimulations.size)
+            assertEquals(
+                listOf("sim-newest", "sim-second-newest", "sim-middle"),
+                loaded.recentSimulations.map { it.id }
+            )
         }
 
     @Test
-    fun loadDashboard_whenNumericFieldsMissing_defaultsThemToZero() =
+    fun loadDashboard_withUnparsableUpdatedAt_defaultsMillisToZero() =
         runTest(mainDispatcherRule.testDispatcher) {
-            stubSnapshotWith(
-                listOf(
-                    simulationDocument(
-                        id = "sim-partial",
-                        name = "Draft simulation",
-                        finalValue = null,
-                        percentReturn = null,
-                        updatedAtMillis = null
-                    )
-                )
+            coEvery { simulationRepository.listSimulations() } returns listOf(
+                sampleDto(id = "sim-bad-date", updatedAt = "not-a-real-date")
             )
 
-            val viewModel = DashboardViewModel(firestore, auth)
+            val viewModel = DashboardViewModel(simulationRepository, auth)
 
             val summary = (viewModel.uiState.value as DashboardUiState.Loaded)
                 .recentSimulations.single()
-            assertEquals(0.0, summary.finalValue, 0.001)
-            assertEquals(0.0, summary.percentReturn, 0.001)
             assertEquals(0L, summary.updatedAtMillis)
         }
 
@@ -193,18 +152,11 @@ class DashboardViewModelTest {
     fun loadDashboard_withNegativeReturn_preservesTheSign() =
         runTest(mainDispatcherRule.testDispatcher) {
             // Negative returns should come through as-is, not get dropped.
-            stubSnapshotWith(
-                listOf(
-                    simulationDocument(
-                        id = "sim-loss",
-                        name = "2008 crash scenario",
-                        finalValue = 4_820.10,
-                        percentReturn = -51.8
-                    )
-                )
+            coEvery { simulationRepository.listSimulations() } returns listOf(
+                sampleDto(id = "sim-loss", name = "2008 crash scenario", finalValue = 4_820.10, percentReturn = -51.8)
             )
 
-            val viewModel = DashboardViewModel(firestore, auth)
+            val viewModel = DashboardViewModel(simulationRepository, auth)
 
             val summary = (viewModel.uiState.value as DashboardUiState.Loaded)
                 .recentSimulations.single()
@@ -214,9 +166,9 @@ class DashboardViewModelTest {
     @Test
     fun loadDashboard_withNoSavedSimulations_emitsLoadedWithEmptyList() =
         runTest(mainDispatcherRule.testDispatcher) {
-            stubSnapshotWith(emptyList())
+            coEvery { simulationRepository.listSimulations() } returns emptyList()
 
-            val viewModel = DashboardViewModel(firestore, auth)
+            val viewModel = DashboardViewModel(simulationRepository, auth)
 
             val state = viewModel.uiState.value
             assertTrue(state is DashboardUiState.Loaded)
@@ -226,9 +178,9 @@ class DashboardViewModelTest {
     @Test
     fun loadDashboard_greetsUserByFirstNameOnly() =
         runTest(mainDispatcherRule.testDispatcher) {
-            stubSnapshotWith(emptyList())
+            coEvery { simulationRepository.listSimulations() } returns emptyList()
 
-            val viewModel = DashboardViewModel(firestore, auth)
+            val viewModel = DashboardViewModel(simulationRepository, auth)
 
             assertEquals(
                 "David",
@@ -243,9 +195,9 @@ class DashboardViewModelTest {
             every { user.uid } returns TEST_UID
             every { user.displayName } returns null
             every { auth.currentUser } returns user
-            stubSnapshotWith(emptyList())
+            coEvery { simulationRepository.listSimulations() } returns emptyList()
 
-            val viewModel = DashboardViewModel(firestore, auth)
+            val viewModel = DashboardViewModel(simulationRepository, auth)
 
             assertEquals(
                 "there",
@@ -254,12 +206,12 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun loadDashboard_whenFirestoreReadFails_emitsRecoverableError() =
+    fun loadDashboard_whenRepositoryThrows_emitsRecoverableError() =
         runTest(mainDispatcherRule.testDispatcher) {
-            every { limitedQuery.get() } returns
-                Tasks.forException(RuntimeException("UNAVAILABLE: network error"))
+            coEvery { simulationRepository.listSimulations() } throws
+                RuntimeException("UNAVAILABLE: network error")
 
-            val viewModel = DashboardViewModel(firestore, auth)
+            val viewModel = DashboardViewModel(simulationRepository, auth)
 
             val state = viewModel.uiState.value
             assertTrue(state is DashboardUiState.Error)
@@ -272,13 +224,14 @@ class DashboardViewModelTest {
     @Test
     fun loadDashboard_calledAgainAfterFailure_recoversToLoaded() =
         runTest(mainDispatcherRule.testDispatcher) {
-            every { limitedQuery.get() } returns
-                Tasks.forException(RuntimeException("UNAVAILABLE"))
-            val viewModel = DashboardViewModel(firestore, auth)
+            coEvery { simulationRepository.listSimulations() } throws
+                RuntimeException("UNAVAILABLE")
+            val viewModel = DashboardViewModel(simulationRepository, auth)
             assertTrue(viewModel.uiState.value is DashboardUiState.Error)
 
             // Simulates the user tapping "Retry" once connectivity is restored.
-            stubSnapshotWith(listOf(simulationDocument(id = "sim-1", name = "Retry works")))
+            coEvery { simulationRepository.listSimulations() } returns
+                listOf(sampleDto(id = "sim-1", name = "Retry works"))
             viewModel.loadDashboard()
 
             assertTrue(viewModel.uiState.value is DashboardUiState.Loaded)
