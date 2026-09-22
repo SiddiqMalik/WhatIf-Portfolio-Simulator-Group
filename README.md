@@ -108,7 +108,7 @@ Firebase Auth and Firestore are wired directly into the app on `main`. A custom 
 =======
 Firebase Auth and Firestore are wired directly into the app on `main`. A custom REST API layer also exists (built and deployed) but is not yet merged into `main` — see REST API / Backend.
 Android Application Architecture
->>>>>>> dce8cee01353bd31e162faccaa45d5b44f18bcbc
+
 ```mermaid
 flowchart TD
     UI[Compose Screens] --> VM[ViewModels - StateFlow]
@@ -184,7 +184,7 @@ Running the backend locally
 cd backend
 npm install
 ```
-<<<<<<< HEAD
+
 
 Create `.env.local` with `FIREBASE_SERVICE_ACCOUNT_JSON`, `ALPHA_VANTAGE_KEY`, and `COINGECKO_API_KEY` (see Firebase Console → Project settings → Service accounts to generate the first one).
 
@@ -417,7 +417,6 @@ backend/
 ├── scripts/getTestToken.js
 └── ...  (Express API, deployed to Vercel)
 ```
-<<<<<<< HEAD
 
 ## Design Notes (UI/Navigation)
 
@@ -496,4 +495,3 @@ Firebase (2026). Firebase Admin SDK — Verify ID Tokens.
 Firebase (2026). Cloud Firestore Security Rules.
 Vercel (2026). Deploying Node.js Serverless Functions.
 Square (2026). Retrofit — A Type-Safe HTTP Client for Android.
->>>>>>> dce8cee01353bd31e162faccaa45d5b44f18bcbc
