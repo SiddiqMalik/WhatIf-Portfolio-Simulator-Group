@@ -1,6 +1,7 @@
 package com.reztek.whatifportfolio.ui.simulation
 
 import android.app.DatePickerDialog
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -20,6 +22,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,15 +37,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,11 +59,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.data.engine.SimulationEngine
+import com.reztek.whatifportfolio.data.engine.SimulationResult
+import com.reztek.whatifportfolio.data.local.SavedSimulationEntity
+import com.reztek.whatifportfolio.data.local.SimulationDatabase
+import com.reztek.whatifportfolio.data.local.SimulationRepository
+import com.reztek.whatifportfolio.ui.chart.PortfolioCanvasChart
 import com.reztek.whatifportfolio.ui.components.InlineErrorBanner
 import com.reztek.whatifportfolio.ui.components.PrimaryActionButton
 import com.reztek.whatifportfolio.ui.components.SectionHeader
 import com.reztek.whatifportfolio.ui.theme.BackgroundLight
+import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.util.Locale
 
 enum class Currency(val symbol: String, val rateToUSD: Double) {
     USD("$", 1.0),
@@ -68,16 +88,57 @@ enum class SimulationMode {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimulationBuilderScreen(
-    onBack: () -> Unit,
-    onSimulationCreated: (String) -> Unit,
+    onBack: () -> Unit = {},
+    onSimulationCreated: (String) -> Unit = {},
     draftId: String? = null,
     viewModel: SimulationBuilderViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val repository = remember {
+        SimulationRepository(SimulationDatabase.getDatabase(context).simulationDao())
+    }
+
     val state by viewModel.uiState.collectAsState()
     var showAssetSheet by remember { mutableStateOf(false) }
 
     var selectedCurrency by remember { mutableStateOf(Currency.USD) }
     var selectedMode by remember { mutableStateOf(SimulationMode.FUTURE_PROJECTION) }
+
+    var initialInvestmentText by remember { mutableStateOf("10000") }
+    var monthlyContributionText by remember { mutableStateOf("500") }
+    var returnRateText by remember { mutableStateOf("7.0") }
+    var inflationRateText by remember { mutableStateOf("2.5") }
+    var yearsSliderPosition by remember { mutableFloatStateOf(10f) }
+
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var simulationTitle by remember { mutableStateOf("") }
+
+    val initialInvestment = initialInvestmentText.toDoubleOrNull() ?: 0.0
+    val monthlyContribution = monthlyContributionText.toDoubleOrNull() ?: 0.0
+    val returnRate = returnRateText.toDoubleOrNull() ?: 0.0
+    val inflationRate = inflationRateText.toDoubleOrNull() ?: 0.0
+    val years = yearsSliderPosition.toInt()
+
+    val baseResult: SimulationResult = remember(
+        initialInvestment,
+        monthlyContribution,
+        returnRate,
+        inflationRate,
+        years,
+        selectedMode
+    ) {
+        SimulationEngine.calculateSimulation(
+            initialInvestment = initialInvestment,
+            monthlyContribution = monthlyContribution,
+            annualReturnRatePercent = if (selectedMode == SimulationMode.HISTORICAL_BACKTEST) returnRate * 0.9 else returnRate,
+            annualInflationRatePercent = inflationRate,
+            timeHorizonYears = years
+        )
+    }
+
+    val convertedNominal = baseResult.finalNominalValue * selectedCurrency.rateToUSD
+    val convertedReal = baseResult.finalRealValue * selectedCurrency.rateToUSD
 
     LaunchedEffect(state.createdSimulationId) {
         state.createdSimulationId?.let { id ->
@@ -89,7 +150,7 @@ fun SimulationBuilderScreen(
     // Prefill from remote draft when duplicating/rerunning via draftId
     LaunchedEffect(draftId) {
         if (!draftId.isNullOrBlank()) {
-            try {
+            runCatching {
                 val repo = com.reztek.whatifportfolio.data.repository.RemoteSimulationRepository()
                 val sim = repo.getSimulation(draftId)
                 viewModel.prefillFromDraft(
@@ -99,18 +160,64 @@ fun SimulationBuilderScreen(
                     frequency = sim.frequency,
                     startDate = sim.startDate,
                     endDate = sim.endDate,
-                    allocations = sim.allocations.orEmpty()
+                    allocations = emptyList()
                 )
-            } catch (_: Exception) {
-                // Keep blank draft if fetch fails
             }
         }
+    }
+
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false },
+            title = { Text("Save Simulation") },
+            text = {
+                OutlinedTextField(
+                    value = simulationTitle,
+                    onValueChange = { simulationTitle = it },
+                    label = { Text("Scenario Title") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (simulationTitle.isNotBlank()) {
+                            coroutineScope.launch {
+                                repository.saveSimulation(
+                                    SavedSimulationEntity(
+                                        title = simulationTitle.trim(),
+                                        initialInvestment = initialInvestment,
+                                        monthlyContribution = monthlyContribution,
+                                        returnRate = returnRate,
+                                        inflationRate = inflationRate,
+                                        years = years,
+                                        finalNominalValue = convertedNominal,
+                                        finalRealValue = convertedReal
+                                    )
+                                )
+                                Toast.makeText(context, "Simulation Saved!", Toast.LENGTH_SHORT).show()
+                                showSaveDialog = false
+                                simulationTitle = ""
+                            }
+                        }
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New simulation", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Simulation Builder", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -121,6 +228,42 @@ fun SimulationBuilderScreen(
                 )
             )
         },
+        bottomBar = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 8.dp,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showSaveDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Save")
+                        }
+
+                        PrimaryActionButton(
+                            text = "Run simulation",
+                            enabled = state.isValid,
+                            isLoading = state.isRunning,
+                            onClick = viewModel::runSimulation,
+                            modifier = Modifier.weight(1.5f)
+                        )
+                    }
+                }
+            }
+        },
         containerColor = BackgroundLight
     ) { padding ->
         Column(
@@ -128,16 +271,15 @@ fun SimulationBuilderScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             SectionHeader(
                 title = "Scenario setup",
-                subtitle = "Define contributions, dates, and multi-asset allocations."
+                subtitle = "Define parameters, dates, and multi-asset allocations."
             )
 
-            Spacer(Modifier.height(16.dp))
-
-            // Currency Selector Row
+            // Display Currency Selector
             Column {
                 Text(text = "Display Currency", style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(4.dp))
@@ -154,9 +296,7 @@ fun SimulationBuilderScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
-
-            // Engine Mode Selector Row
+            // Engine Mode Selector
             Column {
                 Text(text = "Simulation Mode", style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(4.dp))
@@ -178,8 +318,51 @@ fun SimulationBuilderScreen(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            // Target Values Cards
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(text = "Nominal Target", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            text = String.format(Locale.getDefault(), "%s%.2f", selectedCurrency.symbol, convertedNominal),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
 
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(text = "Real Value (Inflation Adj.)", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            text = String.format(Locale.getDefault(), "%s%.2f", selectedCurrency.symbol, convertedReal),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            }
+
+            // Visual Chart
+            PortfolioCanvasChart(
+                dataPoints = baseResult.yearlyDataPoints,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+            )
+
+            // Simulation Name Input
             OutlinedTextField(
                 value = state.name,
                 onValueChange = viewModel::onNameChanged,
@@ -190,58 +373,89 @@ fun SimulationBuilderScreen(
                 shape = RoundedCornerShape(14.dp)
             )
             state.fieldErrors["name"]?.let {
-                InlineErrorBanner(it, Modifier.padding(top = 8.dp))
+                InlineErrorBanner(it, Modifier.padding(top = 4.dp))
             }
 
-            Spacer(Modifier.height(12.dp))
-
+            // Investment Inputs
             OutlinedTextField(
-                value = state.initialInvestment,
-                onValueChange = viewModel::onInitialInvestmentChanged,
-                label = { Text("Initial investment (${selectedCurrency.symbol})") },
-                singleLine = true,
+                value = initialInvestmentText,
+                onValueChange = {
+                    initialInvestmentText = it
+                    viewModel.onInitialInvestmentChanged(it)
+                },
+                label = { Text("Initial Investment (${selectedCurrency.symbol})") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = state.fieldErrors.containsKey("initial"),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp)
             )
-            state.fieldErrors["initial"]?.let {
-                InlineErrorBanner(it, Modifier.padding(top = 8.dp))
-            }
-
-            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = state.recurringContribution,
-                onValueChange = viewModel::onRecurringContributionChanged,
-                label = { Text("Recurring contribution (${selectedCurrency.symbol})") },
-                singleLine = true,
+                value = monthlyContributionText,
+                onValueChange = {
+                    monthlyContributionText = it
+                    viewModel.onRecurringContributionChanged(it)
+                },
+                label = { Text("Monthly Contribution (${selectedCurrency.symbol})") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = state.fieldErrors.containsKey("contribution"),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp)
             )
-            state.fieldErrors["contribution"]?.let {
-                InlineErrorBanner(it, Modifier.padding(top = 8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = returnRateText,
+                    onValueChange = { returnRateText = it },
+                    label = { Text("Return Rate (%)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                OutlinedTextField(
+                    value = inflationRateText,
+                    onValueChange = { inflationRateText = it },
+                    label = { Text("Inflation Rate (%)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp)
+                )
             }
 
-            Spacer(Modifier.height(16.dp))
-            Text("Contribution frequency", style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.height(8.dp))
-            val frequencies = listOf("monthly", "quarterly", "annual")
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                frequencies.forEachIndexed { index, freq ->
-                    SegmentedButton(
-                        selected = state.frequency == freq,
-                        onClick = { viewModel.onFrequencyChanged(freq) },
-                        shape = SegmentedButtonDefaults.itemShape(index, frequencies.size)
-                    ) {
-                        Text(freq.replaceFirstChar { it.uppercase() })
+            // Time Horizon Slider
+            Column {
+                Text(text = "Time Horizon: $years Years", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = yearsSliderPosition,
+                    onValueChange = { yearsSliderPosition = it },
+                    valueRange = 1f..30f,
+                    steps = 29
+                )
+            }
+
+            // Contribution Frequency
+            Column {
+                Text("Contribution frequency", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(8.dp))
+                val frequencies = listOf("monthly", "quarterly", "annual")
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    frequencies.forEachIndexed { index, freq ->
+                        SegmentedButton(
+                            selected = state.frequency == freq,
+                            onClick = { viewModel.onFrequencyChanged(freq) },
+                            shape = SegmentedButtonDefaults.itemShape(index, frequencies.size)
+                        ) {
+                            Text(freq.replaceFirstChar { it.uppercase() })
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            // Dates Selection
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DateField(
                     label = "Start date",
@@ -265,10 +479,10 @@ fun SimulationBuilderScreen(
                 )
             }
             state.fieldErrors["dates"]?.let {
-                InlineErrorBanner(it, Modifier.padding(top = 8.dp))
+                InlineErrorBanner(it, Modifier.padding(top = 4.dp))
             }
 
-            Spacer(Modifier.height(24.dp))
+            // Multi-Asset Allocations Section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -284,7 +498,6 @@ fun SimulationBuilderScreen(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
             state.allocationError?.let {
                 InlineErrorBanner(it, Modifier.padding(bottom = 8.dp))
             }
@@ -293,7 +506,7 @@ fun SimulationBuilderScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 6.dp)
+                        .padding(vertical = 4.dp)
                         .background(
                             MaterialTheme.colorScheme.surface,
                             RoundedCornerShape(14.dp)
@@ -330,22 +543,15 @@ fun SimulationBuilderScreen(
                     "No assets yet. Add equities or crypto to allocate.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                    modifier = Modifier.padding(vertical = 12.dp)
+                    modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
             state.runError?.let {
                 InlineErrorBanner(it, Modifier.padding(bottom = 12.dp))
             }
 
-            PrimaryActionButton(
-                text = "Run simulation",
-                enabled = state.isValid,
-                isLoading = state.isRunning,
-                onClick = viewModel::runSimulation
-            )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
         }
     }
 

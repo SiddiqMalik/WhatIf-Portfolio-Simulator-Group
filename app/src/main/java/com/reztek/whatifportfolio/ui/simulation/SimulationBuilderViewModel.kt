@@ -42,12 +42,12 @@ data class SimulationBuilderUiState(
 
     val isValid: Boolean
         get() = fieldErrors.isEmpty() &&
-            allocationError == null &&
-            allocations.isNotEmpty() &&
-            kotlin.math.abs(allocationTotal - 100.0) <= 0.5 &&
-            (initialInvestment.toDoubleOrNull() ?: -1.0) > 0 &&
-            (recurringContribution.toDoubleOrNull() ?: -1.0) >= 0 &&
-            name.isNotBlank()
+                allocationError == null &&
+                allocations.isNotEmpty() &&
+                kotlin.math.abs(allocationTotal - 100.0) <= 0.5 &&
+                (initialInvestment.toDoubleOrNull() ?: -1.0) > 0 &&
+                (recurringContribution.toDoubleOrNull() ?: -1.0) >= 0 &&
+                name.isNotBlank()
 }
 
 data class AssetSelectorUiState(
@@ -245,7 +245,7 @@ class SimulationBuilderViewModel(
     private suspend fun performSearch() {
         val state = _assetSelector.value
         val q = state.query.trim()
-        if (q.length < 1) {
+        if (q.isEmpty()) {
             _assetSelector.update { it.copy(results = emptyList(), isSearching = false) }
             return
         }
