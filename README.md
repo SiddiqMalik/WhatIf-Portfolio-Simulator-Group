@@ -13,7 +13,7 @@ The app lets a signed-in user enter a starting investment, a monthly contributio
 
 | Feature | Status | What it does |
 |---|---|---|
-| Google Sign-In (Firebase Auth) | Implemented | Signs a user in via Credential Manager + Firebase Auth |
+| Google Sign-In (Firebase Auth) | Implemented | Signs a user in via Credential Manager + Firebase Auth with standard email and password |
 | Dashboard | Implemented | Reads the signed-in user's 3 most recently updated simulations from Firestore |
 | Settings | Implemented | Display currency and dark-theme toggle, saved locally via DataStore, currency mirrored to Firestore |
 | Simulation Builder | Implemented | Enter investment inputs, see a live nominal-vs-real projection, save the result |
