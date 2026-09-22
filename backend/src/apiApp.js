@@ -3,7 +3,7 @@ import { requireAuth, getDb } from "./firebase.js";
 import { searchAssets } from "./assetSearch.js";
 import { getAssetHistory } from "./assetHistory.js";
 import { getCpiSeries } from "./cpiData.js";
-import { createSimulation } from "./simulations.js";
+import { createSimulation, listSimulations, getSimulation, updateSimulation, deleteSimulation } from "./simulations.js";
 
 const app = express();
 app.use(express.json());
@@ -72,6 +72,10 @@ app.get("/v1/assets/:symbol/history", async (req, res) => {
 });
 
 app.post("/v1/simulations", requireAuth, createSimulation);
+app.get("/v1/simulations", requireAuth, listSimulations);
+app.get("/v1/simulations/:id", requireAuth, getSimulation);
+app.put("/v1/simulations/:id", requireAuth, updateSimulation);
+app.delete("/v1/simulations/:id", requireAuth, deleteSimulation);
 
 app.use((req, res) => {
   res.status(404).json({

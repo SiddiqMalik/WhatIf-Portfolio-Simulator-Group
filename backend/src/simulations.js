@@ -4,6 +4,20 @@ import { getAssetHistory } from "./assetHistory.js";
 import { getCpiSeries } from "./cpiData.js";
 import { runSimulation } from "./simulationEngine.js";
 
+function docToJson(doc) {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    ...data,
+    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt,
+  };
+}
+
+function simsRef(db, uid) {
+  return db.collection("users").doc(uid).collection("simulations");
+}
+
 export async function createSimulation(req, res) {
   const db = getDb();
   const body = req.body || {};
@@ -68,7 +82,7 @@ export async function createSimulation(req, res) {
       timeSeries: result.timeSeries,
     };
 
-    const ref = await db.collection("users").doc(req.uid).collection("simulations").add({
+    const ref = await simsRef(db, req.uid).add({
       ...docFields,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -79,5 +93,78 @@ export async function createSimulation(req, res) {
   } catch (err) {
     console.error(err);
     res.status(502).json({ error: { code: "provider_error", message: "Failed to run simulation" } });
+  }
+}
+
+export async function listSimulations(req, res) {
+  try {
+    const db = getDb();
+    const snapshot = await simsRef(db, req.uid).orderBy("createdAt", "desc").get();
+    let items = snapshot.docs.map(docToJson);
+    const { status } = req.query;
+    if (status) items = items.filter((s) => s.status === status);
+    res.json({ data: items });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: { code: "internal_error", message: "Failed to list simulations" } });
+  }
+}
+
+export async function getSimulation(req, res) {
+  try {
+    const db = getDb();
+    const doc = await simsRef(db, req.uid).doc(req.params.id).get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: { code: "not_found", message: "Simulation not found" } });
+    }
+    res.json(docToJson(doc));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: { code: "internal_error", message: "Failed to load simulation" } });
+  }
+}
+
+export async function updateSimulation(req, res) {
+  try {
+    const db = getDb();
+    const ref = simsRef(db, req.uid).doc(req.params.id);
+    const doc = await ref.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: { code: "not_found", message: "Simulation not found" } });
+    }
+    const body = req.body || {};
+    const updates = {};
+    if (typeof body.name === "string" && body.name.trim()) updates.name = body.name.trim();
+    if (typeof body.status === "string") {
+      if (!["draft", "saved"].includes(body.status)) {
+        return res.status(400).json({ error: { code: "invalid_request", message: "status must be 'draft' or 'saved'" } });
+      }
+      updates.status = body.status;
+    }
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: { code: "invalid_request", message: "Provide at least one of: name, status" } });
+    }
+    updates.updatedAt = FieldValue.serverTimestamp();
+    await ref.update(updates);
+    res.json(docToJson(await ref.get()));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: { code: "internal_error", message: "Failed to update simulation" } });
+  }
+}
+
+export async function deleteSimulation(req, res) {
+  try {
+    const db = getDb();
+    const ref = simsRef(db, req.uid).doc(req.params.id);
+    const doc = await ref.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: { code: "not_found", message: "Simulation not found" } });
+    }
+    await ref.delete();
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: { code: "internal_error", message: "Failed to delete simulation" } });
   }
 }
