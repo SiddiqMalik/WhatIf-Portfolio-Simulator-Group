@@ -1,5 +1,5 @@
 
-# What-If Portfolio Simulator
+# What-If Portfolio Simulator Part 2
 
 Android app for PROG7314 / OPSC7312 Part 2 — a portfolio "what-if" simulator that projects how an investment grows over time, both in nominal terms and adjusted for inflation (CPI).
 
