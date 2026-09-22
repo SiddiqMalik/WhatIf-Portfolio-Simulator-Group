@@ -10,8 +10,6 @@ if (!getApps().length) {
   app = getApps()[0];
 }
 
-// preferRest avoids gRPC, which some campus/corporate networks block or interfere
-// with, while plain HTTPS (used here, and by Auth) generally isn't affected.
 const db = initializeFirestore(app, { preferRest: true });
 
 export function getDb() {
@@ -31,4 +29,9 @@ export async function requireAuth(req, res, next) {
   } catch (err) {
     res.status(401).json({ error: { code: "unauthenticated", message: "Invalid or expired token" } });
   }
+}
+
+// Only used by scripts/getTestToken.js for local testing of protected routes.
+export async function createCustomToken(uid) {
+  return getAuth(app).createCustomToken(uid);
 }

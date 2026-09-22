@@ -2,6 +2,8 @@ import express from "express";
 import { requireAuth, getDb } from "./firebase.js";
 import { searchAssets } from "./assetSearch.js";
 import { getAssetHistory } from "./assetHistory.js";
+import { getCpiSeries } from "./cpiData.js";
+import { createSimulation } from "./simulations.js";
 
 const app = express();
 app.use(express.json());
@@ -17,8 +19,7 @@ app.get("/v1/whoami", requireAuth, (req, res) => {
 app.get("/v1/cpi", async (req, res) => {
   try {
     const db = getDb();
-    const snapshot = await db.collection("cpi").orderBy("__name__").get();
-    let rows = snapshot.docs.map((doc) => ({ period: doc.id, index: doc.data().index }));
+    let rows = await getCpiSeries(db);
     const { from, to } = req.query;
     if (from) rows = rows.filter((r) => r.period >= from);
     if (to) rows = rows.filter((r) => r.period <= to);
@@ -44,13 +45,11 @@ app.get("/v1/assets/search", async (req, res) => {
   }
 });
 
-// Historical prices for one asset, cached in Firestore after the first fetch.
 app.get("/v1/assets/:symbol/history", async (req, res) => {
   const { symbol } = req.params;
   const type = (req.query.type || "equity").toString();
   const interval = (req.query.interval || "daily").toString();
   const { from, to } = req.query;
-
   if (!["equity", "crypto"].includes(type)) {
     return res.status(400).json({ error: { code: "invalid_request", message: "type must be 'equity' or 'crypto'" } });
   }
@@ -60,7 +59,6 @@ app.get("/v1/assets/:symbol/history", async (req, res) => {
   if (type === "crypto" && interval !== "daily") {
     return res.status(400).json({ error: { code: "invalid_request", message: "crypto history is only available as 'daily' (past 365 days) on the free tier" } });
   }
-
   try {
     const series = await getAssetHistory(symbol, type, interval);
     let rows = series;
@@ -72,6 +70,8 @@ app.get("/v1/assets/:symbol/history", async (req, res) => {
     res.status(502).json({ error: { code: "provider_error", message: "Failed to fetch historical price data" } });
   }
 });
+
+app.post("/v1/simulations", requireAuth, createSimulation);
 
 app.use((req, res) => {
   res.status(404).json({
