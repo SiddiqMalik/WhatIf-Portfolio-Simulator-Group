@@ -1,5 +1,6 @@
-What-If Portfolio Simulator
-Android application for PROG7314 / OPSC7312 Part 2. The app is a portfolio “what-if” simulator that shows how an investment can grow over time in both nominal terms and real terms after inflation (CPI).
+#What-If Portfolio Simulator#
+
+Android application for PROG7314 Part 2. The app is a portfolio “what-if” simulator that shows how an investment can grow over time in both nominal terms and real terms after inflation (CPI).
 Overview
 A signed-in user can enter a starting investment, monthly contribution, expected annual return, expected annual inflation rate, and investment period. The app then produces a year-by-year projection of the portfolio.
 The results show both:
