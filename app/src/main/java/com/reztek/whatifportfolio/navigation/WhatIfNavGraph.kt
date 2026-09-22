@@ -11,6 +11,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.reztek.whatifportfolio.ui.auth.SignInScreen
 import com.reztek.whatifportfolio.ui.dashboard.DashboardScreen
 import com.reztek.whatifportfolio.ui.settings.SettingsScreen
+import com.reztek.whatifportfolio.ui.simulation.SimulationBuilderScreen
 
 private const val TAG = "WhatIfNavGraph"
 
@@ -77,7 +78,7 @@ fun WhatIfNavGraph(
         }
 
         composable(Destination.SimulationBuilder.route) {
-            PlaceholderScreen(title = "Simulation Builder")
+            SimulationBuilderScreen()
         }
 
         composable(Destination.SimulationResults.route) {
