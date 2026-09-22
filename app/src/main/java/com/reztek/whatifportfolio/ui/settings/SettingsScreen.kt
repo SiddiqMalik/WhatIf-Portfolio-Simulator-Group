@@ -204,7 +204,7 @@ private fun AccountHeader(name: String, email: String) {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                email.ifBlank { "Google account" },
+                email.ifBlank { "Signed in with email" },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )

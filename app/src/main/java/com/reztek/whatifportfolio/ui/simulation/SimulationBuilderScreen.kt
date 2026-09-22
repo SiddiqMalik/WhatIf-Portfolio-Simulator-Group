@@ -150,22 +150,18 @@ fun SimulationBuilderScreen(
     // Prefill from remote draft when duplicating/rerunning via draftId
     LaunchedEffect(draftId) {
         if (!draftId.isNullOrBlank()) {
-            coroutineScope.launch {
-                try {
-                    val repo = com.reztek.whatifportfolio.data.repository.RemoteSimulationRepository()
-                    val sim = repo.getSimulation(draftId)
-                    viewModel.prefillFromDraft(
-                        name = "${sim.name} (copy)",
-                        initialInvestment = sim.initialInvestment,
-                        recurringContribution = sim.recurringContribution,
-                        frequency = sim.frequency,
-                        startDate = sim.startDate,
-                        endDate = sim.endDate,
-                        allocations = emptyList()
-                    )
-                } catch (_: Exception) {
-                    // Keep blank draft if fetch fails
-                }
+            runCatching {
+                val repo = com.reztek.whatifportfolio.data.repository.RemoteSimulationRepository()
+                val sim = repo.getSimulation(draftId)
+                viewModel.prefillFromDraft(
+                    name = "${sim.name} (copy)",
+                    initialInvestment = sim.initialInvestment,
+                    recurringContribution = sim.recurringContribution,
+                    frequency = sim.frequency,
+                    startDate = sim.startDate,
+                    endDate = sim.endDate,
+                    allocations = emptyList()
+                )
             }
         }
     }

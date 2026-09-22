@@ -31,6 +31,11 @@ export async function createSimulation(req, res) {
   if (!(initialInvestment >= 0)) errors.push("initialInvestment must be a number >= 0");
   const recurringContribution = Number(body.recurringContribution);
   if (!(recurringContribution >= 0)) errors.push("recurringContribution must be a number >= 0");
+  const allowedFrequencies = ["monthly", "quarterly", "annual"];
+  const frequency = allowedFrequencies.includes((body.frequency || "monthly").toLowerCase())
+    ? (body.frequency || "monthly").toLowerCase()
+    : null;
+  if (!frequency) errors.push("frequency must be monthly, quarterly or annual");
   const allocations = Array.isArray(body.allocations) ? body.allocations : [];
   if (allocations.length === 0) errors.push("allocations must be a non-empty array");
   const percentSum = allocations.reduce((s, a) => s + (Number(a.percent) || 0), 0);
@@ -62,7 +67,16 @@ export async function createSimulation(req, res) {
     }
 
     const cpiSeries = await getCpiSeries(db);
-    const result = runSimulation({ startDate, endDate, initialInvestment, recurringContribution, allocations, assetSeries, cpiSeries });
+    const result = runSimulation({
+      startDate,
+      endDate,
+      initialInvestment,
+      recurringContribution,
+      frequency,
+      allocations,
+      assetSeries,
+      cpiSeries,
+    });
 
     if (result.totalContributed === 0) {
       return res.status(400).json({ error: { code: "invalid_request", message: "No historical price data available for the selected assets in this date range" } });
@@ -70,7 +84,7 @@ export async function createSimulation(req, res) {
 
     const docFields = {
       name, startDate, endDate, initialInvestment, recurringContribution,
-      frequency: "monthly", allocations, status: "draft",
+      frequency, allocations, status: "draft",
       totalContributed: result.totalContributed,
       finalValue: result.finalValue,
       profitLoss: result.profitLoss,

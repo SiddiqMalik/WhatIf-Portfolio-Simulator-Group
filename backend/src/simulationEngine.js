@@ -17,6 +17,19 @@ function addMonths(dateStr, months) {
   return d.toISOString().slice(0, 10);
 }
 
+function frequencyStepMonths(frequency) {
+  switch ((frequency || "monthly").toLowerCase()) {
+    case "quarterly":
+      return 3;
+    case "annual":
+    case "yearly":
+      return 12;
+    case "monthly":
+    default:
+      return 1;
+  }
+}
+
 function findCpiForMonth(cpiSeries, dateStr) {
   const period = dateStr.slice(0, 7);
   const exact = cpiSeries.find((c) => c.period === period);
@@ -30,12 +43,22 @@ function findCpiForMonth(cpiSeries, dateStr) {
 }
 
 // Pure calculation: given already-fetched price series and CPI data, run the DCA simulation.
-export function runSimulation({ startDate, endDate, initialInvestment, recurringContribution, allocations, assetSeries, cpiSeries }) {
+export function runSimulation({
+  startDate,
+  endDate,
+  initialInvestment,
+  recurringContribution,
+  frequency = "monthly",
+  allocations,
+  assetSeries,
+  cpiSeries,
+}) {
+  const step = frequencyStepMonths(frequency);
   const contributionDates = [{ date: startDate, isInitial: true }];
-  let cursor = addMonths(startDate, 1);
+  let cursor = addMonths(startDate, step);
   while (cursor <= endDate) {
     contributionDates.push({ date: cursor, isInitial: false });
-    cursor = addMonths(cursor, 1);
+    cursor = addMonths(cursor, step);
   }
 
   const perAsset = allocations.map((alloc) => {
@@ -46,9 +69,9 @@ export function runSimulation({ startDate, endDate, initialInvestment, recurring
     for (const c of contributionDates) {
       const amount = (c.isInitial ? initialInvestment : recurringContribution) * (alloc.percent / 100);
       if (amount <= 0) continue;
-      if (!series.length || c.date < series[0].date) continue; // before this asset's data starts
+      if (!series.length || c.date < series[0].date) continue;
       const priceRow = findPriceOnOrAfter(series, c.date);
-      if (!priceRow) continue; // beyond available data
+      if (!priceRow) continue;
       const boughtUnits = amount / priceRow.close;
       units += boughtUnits;
       contributed += amount;

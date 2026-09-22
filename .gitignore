@@ -17,3 +17,5 @@
 *.aab
 
 /app/build
+backend/serviceAccount.json
+backend/.env.local

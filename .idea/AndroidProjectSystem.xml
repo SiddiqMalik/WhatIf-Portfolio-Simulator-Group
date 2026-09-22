@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AndroidGradleProjectConfiguration">
+    <option name="GRADLE_SYNC_TYPE" value="BASIC" />
+  </component>
+  <component name="AndroidProjectSystem">
+    <option name="providerId" value="com.android.tools.idea.GradleProjectSystem" />
+  </component>
+  <component name="GradleMigrationSettings" migrationVersion="1" />
+</project>
