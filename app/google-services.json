@@ -1,26 +1,21 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "whatif-portfolio-local",
-    "storage_bucket": "whatif-portfolio-local.appspot.com"
+    "project_number": "1038943708232",
+    "project_id": "whatif-portfolio",
+    "storage_bucket": "whatif-portfolio.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890abcdef",
+        "mobilesdk_app_id": "1:1038943708232:android:a437d94b73b8bb8770647d",
         "android_client_info": {
           "package_name": "com.reztek.whatifportfolio"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDummyKeyReplaceWithRealFirebaseKey00"
+          "current_key": "AIzaSyCu2zxY1ADRZ3QhsuqFvAPOnEFy-nitqQA"
         }
       ],
       "services": {

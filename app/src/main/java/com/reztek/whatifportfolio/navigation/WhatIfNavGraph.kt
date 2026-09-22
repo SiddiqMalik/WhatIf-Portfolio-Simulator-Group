@@ -28,8 +28,7 @@ private const val TAG = "WhatIfNavGraph"
  */
 @Composable
 fun WhatIfNavGraph(
-    navController: NavHostController = rememberNavController(),
-    onGoogleSignInRequested: () -> Unit
+    navController: NavHostController = rememberNavController()
 ) {
     val startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
         Log.d(TAG, "Existing Firebase session found — starting at Dashboard")
@@ -43,7 +42,6 @@ fun WhatIfNavGraph(
 
         composable(Destination.Login.route) {
             SignInScreen(
-                onSignInClicked = onGoogleSignInRequested,
                 onSignedIn = {
                     Log.i(TAG, "Navigating Login -> Dashboard")
                     navController.navigate(Destination.Dashboard.route) {

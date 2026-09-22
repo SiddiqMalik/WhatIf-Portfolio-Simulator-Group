@@ -1,19 +1,15 @@
 package com.reztek.whatifportfolio.ui.auth
 
 import com.google.android.gms.tasks.Tasks
-import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.GoogleAuthProvider
 import com.reztek.whatifportfolio.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -29,23 +25,11 @@ class SignInViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var firebaseAuth: FirebaseAuth
-    private lateinit var credential: AuthCredential
 
     @Before
     fun setUp() {
         firebaseAuth = mockk(relaxed = true)
-        credential = mockk()
-
-        // Stub the static factory so we don't touch real Google Play Services.
-        mockkStatic(GoogleAuthProvider::class)
-        every { GoogleAuthProvider.getCredential(any(), any()) } returns credential
-
         every { firebaseAuth.currentUser } returns null
-    }
-
-    @After
-    fun tearDown() {
-        unmockkStatic(GoogleAuthProvider::class)
     }
 
     @Test
@@ -72,72 +56,68 @@ class SignInViewModelTest {
     }
 
     @Test
-    fun signInWithGoogleIdToken_whenCredentialExchangeSucceeds_emitsSuccess() =
+    fun signIn_withBlankEmail_emitsValidationError() {
+        val viewModel = SignInViewModel(firebaseAuth)
+
+        viewModel.signIn("  ", "password1")
+
+        val state = viewModel.uiState.value
+        assertTrue(state is SignInUiState.Error)
+        assertEquals("Enter your email address.", (state as SignInUiState.Error).message)
+    }
+
+    @Test
+    fun signIn_whenCredentialsValid_emitsSuccess() =
         runTest(mainDispatcherRule.testDispatcher) {
             val authResult = mockk<AuthResult>()
-            every { firebaseAuth.signInWithCredential(credential) } returns
+            every { firebaseAuth.signInWithEmailAndPassword("user@example.com", "password1") } returns
                 Tasks.forResult(authResult)
             val viewModel = SignInViewModel(firebaseAuth)
 
-            viewModel.signInWithGoogleIdToken("token-abc")
+            viewModel.signIn("user@example.com", "password1")
 
             assertEquals(SignInUiState.Success, viewModel.uiState.value)
-            verify { GoogleAuthProvider.getCredential("token-abc", null) }
-            verify { firebaseAuth.signInWithCredential(credential) }
+            verify { firebaseAuth.signInWithEmailAndPassword("user@example.com", "password1") }
         }
 
     @Test
-    fun signInWithGoogleIdToken_whenFirebaseFails_emitsErrorWithFirebaseMessage() =
+    fun signIn_whenFirebaseFails_emitsFriendlyError() =
         runTest(mainDispatcherRule.testDispatcher) {
-            every { firebaseAuth.signInWithCredential(credential) } returns
-                Tasks.forException(RuntimeException("Token has expired"))
+            val authException = mockk<FirebaseAuthException>()
+            every { authException.errorCode } returns "ERROR_INVALID_CREDENTIAL"
+            every { authException.localizedMessage } returns "ignored"
+            every { firebaseAuth.signInWithEmailAndPassword(any(), any()) } returns
+                Tasks.forException(authException)
             val viewModel = SignInViewModel(firebaseAuth)
 
-            viewModel.signInWithGoogleIdToken("expired-token")
+            viewModel.signIn("user@example.com", "password1")
 
             val state = viewModel.uiState.value
             assertTrue(state is SignInUiState.Error)
-            assertEquals("Token has expired", (state as SignInUiState.Error).message)
+            assertEquals("Incorrect email or password.", (state as SignInUiState.Error).message)
         }
 
     @Test
-    fun signInWithGoogleIdToken_whenFailureHasNoMessage_emitsFallbackMessage() =
+    fun register_whenSuccessful_emitsSuccess() =
         runTest(mainDispatcherRule.testDispatcher) {
-            // A null exception message should fall back to a real message.
-            every { firebaseAuth.signInWithCredential(credential) } returns
-                Tasks.forException(RuntimeException())
+            val authResult = mockk<AuthResult>()
+            every { firebaseAuth.createUserWithEmailAndPassword("new@example.com", "password1") } returns
+                Tasks.forResult(authResult)
             val viewModel = SignInViewModel(firebaseAuth)
 
-            viewModel.signInWithGoogleIdToken("token")
+            viewModel.register("new@example.com", "password1")
 
-            val state = viewModel.uiState.value
-            assertTrue(state is SignInUiState.Error)
-            assertEquals(
-                "Sign-in failed. Please try again.",
-                (state as SignInUiState.Error).message
-            )
-        }
-
-    @Test
-    fun onSignInCancelled_returnsStateToIdle() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            every { firebaseAuth.signInWithCredential(credential) } returns
-                Tasks.forException(RuntimeException("boom"))
-            val viewModel = SignInViewModel(firebaseAuth)
-            viewModel.signInWithGoogleIdToken("token")
-
-            viewModel.onSignInCancelled()
-
-            assertEquals(SignInUiState.Idle, viewModel.uiState.value)
+            assertEquals(SignInUiState.Success, viewModel.uiState.value)
+            verify { firebaseAuth.createUserWithEmailAndPassword("new@example.com", "password1") }
         }
 
     @Test
     fun consumeError_afterFailedSignIn_returnsStateToIdle() =
         runTest(mainDispatcherRule.testDispatcher) {
-            every { firebaseAuth.signInWithCredential(credential) } returns
+            every { firebaseAuth.signInWithEmailAndPassword(any(), any()) } returns
                 Tasks.forException(RuntimeException("network unreachable"))
             val viewModel = SignInViewModel(firebaseAuth)
-            viewModel.signInWithGoogleIdToken("token")
+            viewModel.signIn("user@example.com", "password1")
             assertTrue(viewModel.uiState.value is SignInUiState.Error)
 
             viewModel.consumeError()
