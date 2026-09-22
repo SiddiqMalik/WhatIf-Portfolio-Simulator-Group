@@ -4,7 +4,6 @@ import android.app.DatePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +53,18 @@ import com.reztek.whatifportfolio.ui.components.SectionHeader
 import com.reztek.whatifportfolio.ui.theme.BackgroundLight
 import java.time.LocalDate
 
+enum class Currency(val symbol: String, val rateToUSD: Double) {
+    USD("$", 1.0),
+    ZAR("R", 18.25),
+    EUR("€", 0.92),
+    GBP("£", 0.78)
+}
+
+enum class SimulationMode {
+    FUTURE_PROJECTION,
+    HISTORICAL_BACKTEST
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimulationBuilderScreen(
@@ -64,7 +75,9 @@ fun SimulationBuilderScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var showAssetSheet by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+
+    var selectedCurrency by remember { mutableStateOf(Currency.USD) }
+    var selectedMode by remember { mutableStateOf(SimulationMode.FUTURE_PROJECTION) }
 
     LaunchedEffect(state.createdSimulationId) {
         state.createdSimulationId?.let { id ->
@@ -124,6 +137,49 @@ fun SimulationBuilderScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // Currency Selector Row
+            Column {
+                Text(text = "Display Currency", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(4.dp))
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    Currency.entries.forEachIndexed { index, currency ->
+                        SegmentedButton(
+                            selected = selectedCurrency == currency,
+                            onClick = { selectedCurrency = currency },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = Currency.entries.size)
+                        ) {
+                            Text("${currency.name} (${currency.symbol})")
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Engine Mode Selector Row
+            Column {
+                Text(text = "Simulation Mode", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(4.dp))
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = selectedMode == SimulationMode.FUTURE_PROJECTION,
+                        onClick = { selectedMode = SimulationMode.FUTURE_PROJECTION },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) {
+                        Text("Future Projection")
+                    }
+                    SegmentedButton(
+                        selected = selectedMode == SimulationMode.HISTORICAL_BACKTEST,
+                        onClick = { selectedMode = SimulationMode.HISTORICAL_BACKTEST },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) {
+                        Text("Historical Backtest")
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = state.name,
                 onValueChange = viewModel::onNameChanged,
@@ -142,7 +198,7 @@ fun SimulationBuilderScreen(
             OutlinedTextField(
                 value = state.initialInvestment,
                 onValueChange = viewModel::onInitialInvestmentChanged,
-                label = { Text("Initial investment") },
+                label = { Text("Initial investment (${selectedCurrency.symbol})") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = state.fieldErrors.containsKey("initial"),
@@ -158,7 +214,7 @@ fun SimulationBuilderScreen(
             OutlinedTextField(
                 value = state.recurringContribution,
                 onValueChange = viewModel::onRecurringContributionChanged,
-                label = { Text("Recurring contribution") },
+                label = { Text("Recurring contribution (${selectedCurrency.symbol})") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = state.fieldErrors.containsKey("contribution"),
@@ -224,7 +280,7 @@ fun SimulationBuilderScreen(
                 )
                 OutlinedButton(onClick = { showAssetSheet = true }) {
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("  Add asset")
+                    Text(" Add asset")
                 }
             }
 
