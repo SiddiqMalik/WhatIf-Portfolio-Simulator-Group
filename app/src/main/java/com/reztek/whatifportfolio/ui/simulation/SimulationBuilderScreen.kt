@@ -18,10 +18,22 @@ import com.reztek.whatifportfolio.data.local.SavedSimulationEntity
 import com.reztek.whatifportfolio.data.local.SimulationDatabase
 import com.reztek.whatifportfolio.data.local.SimulationRepository
 import com.reztek.whatifportfolio.ui.chart.PortfolioCanvasChart
-import java.util.Locale
-import com.reztek.whatifportfolio.data.model.SimulationPoint
 import kotlinx.coroutines.launch
+import java.util.Locale
 
+enum class Currency(val symbol: String, val rateToUSD: Double) {
+    USD("$", 1.0),
+    ZAR("R", 18.25),
+    EUR("€", 0.92),
+    GBP("£", 0.78)
+}
+
+enum class SimulationMode {
+    FUTURE_PROJECTION,
+    HISTORICAL_BACKTEST
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimulationBuilderScreen(
     modifier: Modifier = Modifier
@@ -31,6 +43,9 @@ fun SimulationBuilderScreen(
     val repository = remember {
         SimulationRepository(SimulationDatabase.getDatabase(context).simulationDao())
     }
+
+    var selectedCurrency by remember { mutableStateOf(Currency.USD) }
+    var selectedMode by remember { mutableStateOf(SimulationMode.FUTURE_PROJECTION) }
 
     var initialInvestmentText by remember { mutableStateOf("10000") }
     var monthlyContributionText by remember { mutableStateOf("500") }
@@ -47,21 +62,25 @@ fun SimulationBuilderScreen(
     val inflationRate = inflationRateText.toDoubleOrNull() ?: 0.0
     val years = yearsSliderPosition.toInt()
 
-    val simulationResult: SimulationResult = remember(
+    val baseResult: SimulationResult = remember(
         initialInvestment,
         monthlyContribution,
         returnRate,
         inflationRate,
-        years
+        years,
+        selectedMode
     ) {
         SimulationEngine.calculateSimulation(
             initialInvestment = initialInvestment,
             monthlyContribution = monthlyContribution,
-            annualReturnRatePercent = returnRate,
+            annualReturnRatePercent = if (selectedMode == SimulationMode.HISTORICAL_BACKTEST) returnRate * 0.9 else returnRate,
             annualInflationRatePercent = inflationRate,
             timeHorizonYears = years
         )
     }
+
+    val convertedNominal = baseResult.finalNominalValue * selectedCurrency.rateToUSD
+    val convertedReal = baseResult.finalRealValue * selectedCurrency.rateToUSD
 
     if (showSaveDialog) {
         AlertDialog(
@@ -89,8 +108,8 @@ fun SimulationBuilderScreen(
                                         returnRate = returnRate,
                                         inflationRate = inflationRate,
                                         years = years,
-                                        finalNominalValue = simulationResult.finalNominalValue,
-                                        finalRealValue = simulationResult.finalRealValue
+                                        finalNominalValue = convertedNominal,
+                                        finalRealValue = convertedReal
                                     )
                                 )
                                 Toast.makeText(context, "Simulation Saved!", Toast.LENGTH_SHORT).show()
@@ -123,6 +142,43 @@ fun SimulationBuilderScreen(
             style = MaterialTheme.typography.headlineMedium
         )
 
+        // Currency Selector Row
+        Column {
+            Text(text = "Display Currency", style = MaterialTheme.typography.labelMedium)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                Currency.values().forEachIndexed { index, currency ->
+                    SegmentedButton(
+                        selected = selectedCurrency == currency,
+                        onClick = { selectedCurrency = currency },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = Currency.values().size)
+                    ) {
+                        Text("${currency.name} (${currency.symbol})")
+                    }
+                }
+            }
+        }
+
+        // Engine Mode Selector
+        Column {
+            Text(text = "Simulation Mode", style = MaterialTheme.typography.labelMedium)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = selectedMode == SimulationMode.FUTURE_PROJECTION,
+                    onClick = { selectedMode = SimulationMode.FUTURE_PROJECTION },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) {
+                    Text("Future Projection")
+                }
+                SegmentedButton(
+                    selected = selectedMode == SimulationMode.HISTORICAL_BACKTEST,
+                    onClick = { selectedMode = SimulationMode.HISTORICAL_BACKTEST },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) {
+                    Text("Historical Backtest")
+                }
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -136,7 +192,7 @@ fun SimulationBuilderScreen(
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(text = "Nominal Target", style = MaterialTheme.typography.labelSmall)
                     Text(
-                        text = String.format(Locale.getDefault(), "$%.2f", simulationResult.finalNominalValue),
+                        text = String.format(Locale.getDefault(), "%s%.2f", selectedCurrency.symbol, convertedNominal),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -151,7 +207,7 @@ fun SimulationBuilderScreen(
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(text = "Real Value (Inflation Adj.)", style = MaterialTheme.typography.labelSmall)
                     Text(
-                        text = String.format(Locale.getDefault(), "$%.2f", simulationResult.finalRealValue),
+                        text = String.format(Locale.getDefault(), "%s%.2f", selectedCurrency.symbol, convertedReal),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -159,7 +215,7 @@ fun SimulationBuilderScreen(
         }
 
         PortfolioCanvasChart(
-            dataPoints = simulationResult.yearlyDataPoints,
+            dataPoints = baseResult.yearlyDataPoints,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(240.dp)
@@ -168,14 +224,14 @@ fun SimulationBuilderScreen(
         OutlinedTextField(
             value = initialInvestmentText,
             onValueChange = { initialInvestmentText = it },
-            label = { Text("Initial Investment ($)") },
+            label = { Text("Initial Investment (${selectedCurrency.symbol})") },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = monthlyContributionText,
             onValueChange = { monthlyContributionText = it },
-            label = { Text("Monthly Contribution ($)") },
+            label = { Text("Monthly Contribution (${selectedCurrency.symbol})") },
             modifier = Modifier.fillMaxWidth()
         )
 
