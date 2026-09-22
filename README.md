@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # What-If Portfolio Simulator
 
 Android app for PROG7314 / OPSC7312 Part 2 — a portfolio "what-if" simulator that projects how an investment grows over time, both in nominal terms and adjusted for inflation (CPI).
@@ -99,7 +99,7 @@ flowchart TD
     B --> G[Retrofit - Custom REST API]
     E --> F
 ```
-<<<<<<< HEAD
+
 
 Firebase Auth and Firestore are wired directly into the app on `main`. A custom REST API layer also exists (built and deployed) but is not yet merged into `main` — see [REST API / Backend](#rest-api--backend).
 
@@ -119,7 +119,7 @@ flowchart TD
     REPO --> DAO[SimulationDao - Room]
     DAO --> DB[(SQLite via Room)]
 ```
-<<<<<<< HEAD
+
 
 Each screen (`SignInScreen`, `DashboardScreen`, `SettingsScreen`, `SimulationBuilderScreen`) has its own ViewModel exposing a single `StateFlow` of a sealed `UiState`, so a screen is always in exactly one state (Loading / Loaded / Error, etc.) rather than juggling several booleans. This unidirectional-data-flow pattern follows the official Jetpack Compose state guidance.
 
@@ -158,7 +158,7 @@ The live API is already deployed at `https://whatif-api.vercel.app` — no redep
 
 ### Running the backend locally
 
-=======
+
 Each screen (`SignInScreen`, `DashboardScreen`, `SettingsScreen`, `SimulationBuilderScreen`) has its own ViewModel exposing a single `StateFlow` of a sealed `UiState`, so a screen is always in exactly one state (Loading / Loaded / Error, etc.) rather than juggling several booleans. This unidirectional-data-flow pattern follows the official Jetpack Compose state guidance.
 `SimulationEngine` is a stateless object — it takes plain numeric inputs and returns a `SimulationResult`, with no Android or Firebase dependency, which is what makes it possible to unit test on the JVM.
 Authentication
@@ -179,7 +179,7 @@ REST API / Backend
 A custom serverless REST API (Node.js/Express, hosted on Vercel) exists on a separate branch and is fully built, tested, and deployed — but not yet merged into `main`. The app on `main` currently talks to Firebase Auth and Firestore directly rather than through this API. This section will be updated once that branch is merged.
 The live API is already deployed at `https://whatif-api.vercel.app` — no redeploy is needed to try it.
 Running the backend locally
->>>>>>> dce8cee01353bd31e162faccaa45d5b44f18bcbc
+
 ```bash
 cd backend
 npm install
@@ -242,7 +242,7 @@ Unit tests are configured and implemented; final execution results are verified 
 
 ## GitHub Actions / Continuous Integration
 
-=======
+
 Create `.env.local` with `FIREBASE_SERVICE_ACCOUNT_JSON`, `ALPHA_VANTAGE_KEY`, and `COINGECKO_API_KEY` (see Firebase Console → Project settings → Service accounts to generate the first one).
 ```bash
 node --env-file=.env.local local.js   # serves on http://localhost:3000
@@ -282,7 +282,7 @@ Unit tests live under `app/src/test/java/com/reztek/whatifportfolio/` and cover:
 `SettingsViewModel` is not unit tested: it extends `AndroidViewModel` and constructs its DataStore-backed preferences repository directly from a real `Context`, which isn't available in a JVM test. Testing it properly would need either Robolectric or a small constructor change to inject that dependency — not done yet, to avoid changing another teammate's class without agreement.
 Unit tests are configured and implemented; final execution results are verified through the local Gradle test command and GitHub Actions.
 GitHub Actions / Continuous Integration
->>>>>>> dce8cee01353bd31e162faccaa45d5b44f18bcbc
+
 ```mermaid
 flowchart LR
     A[Push to any branch] --> B[GitHub Actions runner]
@@ -293,7 +293,6 @@ flowchart LR
     F -->|Yes| G[Green check]
     F -->|No| H[Red check - PR blocked]
 ```
-<<<<<<< HEAD
 
 `.github/workflows/android.yml` runs on every push to any branch and on pull requests into `main`. It checks out the repo, sets up JDK 17 (matching the project's `jvmTarget`), runs `:app:testDebugUnitTest`, then `:app:assembleDebug`. Either step failing fails the whole workflow — there is no `continue-on-error`. The unit test report is uploaded as a build artifact even on failure, so a broken run can be diagnosed from the Actions tab without reproducing it locally.
 
@@ -350,7 +349,7 @@ Run the app configuration from Android Studio, or:
 
 ## Project Structure
 
-=======
+
 `.github/workflows/android.yml` runs on every push to any branch and on pull requests into `main`. It checks out the repo, sets up JDK 17 (matching the project's `jvmTarget`), runs `:app:testDebugUnitTest`, then `:app:assembleDebug`. Either step failing fails the whole workflow — there is no `continue-on-error`. The unit test report is uploaded as a build artifact even on failure, so a broken run can be diagnosed from the Actions tab without reproducing it locally.
 Logging
 `android.util.Log` is used throughout — `WhatIfApplication.onCreate`, `MainActivity`'s lifecycle callbacks (`onCreate` through `onDestroy`), `WhatIfNavGraph`'s navigation events, and every ViewModel (creation, key actions like sign-in attempts or Firestore reads, and failures). Each class logs under its own tag, so `adb logcat` shows a readable trace of authentication state, navigation, and data loading during a demo — satisfying the requirement for functional logging that demonstrates a clear programmatic understanding of lifecycle and state transitions.
@@ -388,7 +387,7 @@ Building
 ./gradlew :app:assembleDebug
 ```
 Project Structure
->>>>>>> dce8cee01353bd31e162faccaa45d5b44f18bcbc
+
 ```
 app/src/main/java/com/reztek/whatifportfolio/
 ├── data/
