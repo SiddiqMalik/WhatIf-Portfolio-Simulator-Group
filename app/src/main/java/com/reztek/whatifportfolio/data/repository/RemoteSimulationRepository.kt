@@ -12,4 +12,8 @@ class RemoteSimulationRepository(
     private val api: ApiService = NetworkModule.apiService
 ) {
     suspend fun listSimulations(): List<SimulationDto> = api.listSimulations().data
+
+    suspend fun getSimulation(id: String): SimulationDto {
+        return api.getSimulation(id)
+    }
 }
