@@ -1,0 +1,20 @@
+{
+  "name": "whatif-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "local.js",
+  "scripts": {
+    "start": "node --env-file=.env.local local.js"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "overrides": {
+    "jose": "4.x"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "firebase-admin": "^14.4.0"
+  }
+}
