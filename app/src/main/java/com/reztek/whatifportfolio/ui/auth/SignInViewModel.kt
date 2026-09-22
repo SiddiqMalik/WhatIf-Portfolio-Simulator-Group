@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.FirebaseAuthException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,14 +25,8 @@ sealed interface SignInUiState {
 }
 
 /**
- * Handles the "Sign in with Google" flow via Firebase Authentication.
- *
- * The actual Google credential is obtained in the Activity using
- * CredentialManager (Android's current recommended API, replacing the
- * deprecated GoogleSignInClient — see Google, 2026, "Credential Manager for
- * Android"); this ViewModel only owns the resulting UI state and the
- * Firebase side of the exchange, keeping the ViewModel testable and free of
- * Activity/Context references.
+ * Handles email/password sign-in and registration via Firebase Authentication.
+ * The resulting Firebase ID token is attached to REST calls by [AuthInterceptor].
  */
 class SignInViewModel(
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -47,44 +41,88 @@ class SignInViewModel(
 
     init {
         Log.d(TAG, "SignInViewModel created")
+        if (firebaseAuth.currentUser != null) {
+            _uiState.value = SignInUiState.Success
+        }
     }
 
     /** Whether a Firebase session already exists — lets the NavHost skip Login entirely. */
     fun isAlreadySignedIn(): Boolean = firebaseAuth.currentUser != null
 
-    /**
-     * Exchanges a Google ID token (obtained by the caller via Credential
-     * Manager) for a Firebase session.
-     */
-    fun signInWithGoogleIdToken(idToken: String) {
-        Log.i(TAG, "Beginning Firebase credential exchange")
+    fun signIn(email: String, password: String) {
+        val trimmedEmail = email.trim()
+        val validationError = validate(trimmedEmail, password)
+        if (validationError != null) {
+            _uiState.value = SignInUiState.Error(validationError)
+            return
+        }
+
+        Log.i(TAG, "Beginning email/password sign-in")
         _uiState.value = SignInUiState.Loading
         viewModelScope.launch {
             try {
-                val credential = GoogleAuthProvider.getCredential(idToken, null)
-                firebaseAuth.signInWithCredential(credential).await()
+                firebaseAuth.signInWithEmailAndPassword(trimmedEmail, password).await()
                 Log.i(TAG, "Firebase sign-in succeeded for uid=${firebaseAuth.currentUser?.uid}")
                 _uiState.value = SignInUiState.Success
             } catch (e: Exception) {
                 Log.e(TAG, "Firebase sign-in failed", e)
-                _uiState.value = SignInUiState.Error(
-                    e.localizedMessage ?: "Sign-in failed. Please try again."
-                )
+                _uiState.value = SignInUiState.Error(friendlyAuthMessage(e, signingUp = false))
             }
         }
     }
 
-    fun onSignInCancelled() {
-        Log.d(TAG, "Google sign-in flow cancelled by user")
-        _uiState.value = SignInUiState.Idle
+    fun register(email: String, password: String) {
+        val trimmedEmail = email.trim()
+        val validationError = validate(trimmedEmail, password)
+        if (validationError != null) {
+            _uiState.value = SignInUiState.Error(validationError)
+            return
+        }
+
+        Log.i(TAG, "Beginning email/password registration")
+        _uiState.value = SignInUiState.Loading
+        viewModelScope.launch {
+            try {
+                firebaseAuth.createUserWithEmailAndPassword(trimmedEmail, password).await()
+                Log.i(TAG, "Firebase registration succeeded for uid=${firebaseAuth.currentUser?.uid}")
+                _uiState.value = SignInUiState.Success
+            } catch (e: Exception) {
+                Log.e(TAG, "Firebase registration failed", e)
+                _uiState.value = SignInUiState.Error(friendlyAuthMessage(e, signingUp = true))
+            }
+        }
     }
 
     fun consumeError() {
         _uiState.value = SignInUiState.Idle
     }
-}
 
-// Note: `.await()` on the Firebase Task returned by signInWithCredential()
-// comes from the `kotlinx-coroutines-play-services` artifact
-// (org.jetbrains.kotlinx:kotlinx-coroutines-play-services). Add it as a
-// module dependency — see build.gradle.kts notes in README.md.
+    private fun validate(email: String, password: String): String? = when {
+        email.isBlank() -> "Enter your email address."
+        "@" !in email || "." !in email.substringAfter("@") -> "Enter a valid email address."
+        password.length < 6 -> "Password must be at least 6 characters."
+        else -> null
+    }
+
+    private fun friendlyAuthMessage(e: Exception, signingUp: Boolean): String {
+        val code = (e as? FirebaseAuthException)?.errorCode
+        return when (code) {
+            "ERROR_INVALID_EMAIL" -> "Enter a valid email address."
+            "ERROR_WRONG_PASSWORD", "ERROR_INVALID_CREDENTIAL" ->
+                "Incorrect email or password."
+            "ERROR_USER_NOT_FOUND" ->
+                "No account found for that email. Create one first."
+            "ERROR_EMAIL_ALREADY_IN_USE" ->
+                "That email is already registered. Sign in instead."
+            "ERROR_WEAK_PASSWORD" ->
+                "Password must be at least 6 characters."
+            "ERROR_NETWORK_REQUEST_FAILED" ->
+                "Network error. Check your connection and try again."
+            "ERROR_OPERATION_NOT_ALLOWED" ->
+                "Email/password sign-in is disabled in Firebase Console."
+            else -> e.localizedMessage
+                ?: if (signingUp) "Registration failed. Please try again."
+                else "Sign-in failed. Please try again."
+        }
+    }
+}

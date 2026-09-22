@@ -43,9 +43,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
 import com.reztek.whatifportfolio.ui.components.EmptyState
-import com.reztek.whatifportfolio.ui.components.FullScreenLoading
 import com.reztek.whatifportfolio.ui.components.StatusChip
 import com.reztek.whatifportfolio.ui.components.WhatIfBottomNavBar
+import com.reztek.whatifportfolio.ui.theme.BackgroundLight
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 import com.reztek.whatifportfolio.ui.theme.SuccessGreen
 import java.text.NumberFormat
@@ -73,6 +73,7 @@ fun DashboardScreen(
     }
 
     Scaffold(
+        containerColor = BackgroundLight,
         bottomBar = {
             WhatIfBottomNavBar(
                 currentDestination = BottomNavDestination.HOME,
@@ -93,8 +94,15 @@ fun DashboardScreen(
         }
     ) { padding ->
         when (val state = uiState) {
-            is DashboardUiState.Loading -> FullScreenLoading(modifier = Modifier.padding(padding))
-
+            is DashboardUiState.Loading -> {
+                Column(Modifier.padding(padding).padding(20.dp)) {
+                    com.reztek.whatifportfolio.ui.components.SkeletonRow()
+                    Spacer(Modifier.height(10.dp))
+                    com.reztek.whatifportfolio.ui.components.SkeletonRow()
+                    Spacer(Modifier.height(10.dp))
+                    com.reztek.whatifportfolio.ui.components.SkeletonRow()
+                }
+            }
             is DashboardUiState.Error -> Box(
                 modifier = Modifier
                     .padding(padding)

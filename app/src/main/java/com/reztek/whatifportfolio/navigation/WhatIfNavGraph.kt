@@ -4,32 +4,25 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
 import com.reztek.whatifportfolio.ui.auth.SignInScreen
 import com.reztek.whatifportfolio.ui.dashboard.DashboardScreen
 import com.reztek.whatifportfolio.ui.settings.SettingsScreen
+import com.reztek.whatifportfolio.ui.simulation.SavedSimulationsScreen
 import com.reztek.whatifportfolio.ui.simulation.SimulationBuilderScreen
+import com.reztek.whatifportfolio.ui.simulation.SimulationDetailScreen
+import com.reztek.whatifportfolio.ui.simulation.SimulationResultsScreen
 
 private const val TAG = "WhatIfNavGraph"
 
-/**
- * Root navigation graph — the code counterpart of the Navigation Wireflow
- * diagram (Deliverable 3). Every [Destination] is a node; every
- * `navController.navigate(...)` call below is a labelled edge in that
- * diagram.
- *
- * Auth-gating strategy: rather than a separate splash/auth-check screen, the
- * start destination is decided once at graph-construction time from
- * [FirebaseAuth.currentUser]. Login uses `popUpTo(Login) { inclusive = true }`
- * on success so a signed-in user can never navigate back into it.
- */
 @Composable
 fun WhatIfNavGraph(
-    navController: NavHostController = rememberNavController(),
-    onGoogleSignInRequested: () -> Unit
+    navController: NavHostController = rememberNavController()
 ) {
     val startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
         Log.d(TAG, "Existing Firebase session found — starting at Dashboard")
@@ -43,7 +36,6 @@ fun WhatIfNavGraph(
 
         composable(Destination.Login.route) {
             SignInScreen(
-                onSignInClicked = onGoogleSignInRequested,
                 onSignedIn = {
                     Log.i(TAG, "Navigating Login -> Dashboard")
                     navController.navigate(Destination.Dashboard.route) {
@@ -74,19 +66,79 @@ fun WhatIfNavGraph(
         }
 
         composable(Destination.SavedSimulations.route) {
-            PlaceholderScreen(title = "Saved Simulations")
+            SavedSimulationsScreen(
+                onOpenSimulation = { id ->
+                    navController.navigate(Destination.SimulationDetail.createRoute(id))
+                },
+                onRerun = { id ->
+                    navController.navigate(Destination.SimulationBuilder.createRoute(id))
+                },
+                onBottomNavSelected = { destination ->
+                    navController.navigateToBottomDestination(destination)
+                }
+            )
         }
 
-        composable(Destination.SimulationBuilder.route) {
-            SimulationBuilderScreen()
+        composable(
+            route = Destination.SimulationBuilder.route,
+                arguments = listOf(
+                navArgument(Destination.SimulationBuilder.ARG_DRAFT_ID) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { entry ->
+            val draftId = entry.arguments?.getString(Destination.SimulationBuilder.ARG_DRAFT_ID)
+            SimulationBuilderScreen(
+                draftId = draftId?.takeIf { it.isNotBlank() },
+                onBack = { navController.popBackStack() },
+                onSimulationCreated = { id ->
+                    navController.navigate(Destination.SimulationResults.createRoute(id)) {
+                        popUpTo(Destination.SimulationBuilder.route) { inclusive = true }
+                    }
+                }
+            )
         }
 
-        composable(Destination.SimulationResults.route) {
-            PlaceholderScreen(title = "Simulation Results")
+        composable(
+            route = Destination.SimulationResults.route,
+            arguments = listOf(
+                navArgument(Destination.SimulationResults.ARG_SIMULATION_ID) {
+                    type = NavType.StringType
+                }
+            )
+        ) { entry ->
+            val id = entry.arguments?.getString(Destination.SimulationResults.ARG_SIMULATION_ID).orEmpty()
+            SimulationResultsScreen(
+                simulationId = id,
+                onBack = { navController.popBackStack() }
+            )
         }
 
-        composable(Destination.SimulationDetail.route) {
-            PlaceholderScreen(title = "Simulation Detail")
+        composable(
+            route = Destination.SimulationDetail.route,
+            arguments = listOf(
+                navArgument(Destination.SimulationDetail.ARG_SIMULATION_ID) {
+                    type = NavType.StringType
+                }
+            )
+        ) { entry ->
+            val id = entry.arguments?.getString(Destination.SimulationDetail.ARG_SIMULATION_ID).orEmpty()
+            SimulationDetailScreen(
+                simulationId = id,
+                onBack = { navController.popBackStack() },
+                onRerun = { newId ->
+                    navController.navigate(Destination.SimulationResults.createRoute(newId))
+                },
+                onDuplicate = { draftId ->
+                    navController.navigate(Destination.SimulationBuilder.createRoute(draftId))
+                },
+                onDeleted = {
+                    navController.navigate(Destination.SavedSimulations.route) {
+                        popUpTo(Destination.Dashboard.route)
+                    }
+                }
+            )
         }
 
         composable(Destination.Settings.route) {
@@ -105,12 +157,6 @@ fun WhatIfNavGraph(
     }
 }
 
-/**
- * Shared bottom-tab navigation behaviour: single-top, restores previously
- * saved state per tab, and pops back to the graph's start so repeated tab
- * taps don't stack duplicate destinations — standard Compose Navigation
- * pattern for bottom bars (Google, Jetpack Navigation Compose docs).
- */
 private fun NavHostController.navigateToBottomDestination(destination: BottomNavDestination) {
     Log.d(TAG, "Bottom nav -> ${destination.label}")
     navigate(destination.destination.route) {
