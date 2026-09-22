@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.reztek.whatifportfolio.data.repository.SimulationRepository
+import com.reztek.whatifportfolio.data.repository.RemoteSimulationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,7 +42,7 @@ sealed interface DashboardUiState {
  * belongs, per its own spec.
  */
 class DashboardViewModel(
-    private val simulationRepository: SimulationRepository = SimulationRepository(),
+    private val simulationRepository: RemoteSimulationRepository = RemoteSimulationRepository(),
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 ) : ViewModel() {
 
