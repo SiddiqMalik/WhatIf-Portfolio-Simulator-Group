@@ -495,3 +495,5 @@ Firebase (2026). Firebase Admin SDK — Verify ID Tokens.
 Firebase (2026). Cloud Firestore Security Rules.
 Vercel (2026). Deploying Node.js Serverless Functions.
 Square (2026). Retrofit — A Type-Safe HTTP Client for Android.
+
+Please mark from commit 39 if possible.
