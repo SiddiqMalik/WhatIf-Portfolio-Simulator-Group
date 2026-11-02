@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
+import com.reztek.whatifportfolio.notifications.FcmTokenRegistrar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,6 +64,8 @@ class SignInViewModel(
             try {
                 firebaseAuth.signInWithEmailAndPassword(trimmedEmail, password).await()
                 Log.i(TAG, "Firebase sign-in succeeded for uid=${firebaseAuth.currentUser?.uid}")
+                // PART3-DAVID: register FCM token after session is established
+                runCatching { FcmTokenRegistrar.registerCurrentToken() }
                 _uiState.value = SignInUiState.Success
             } catch (e: Exception) {
                 Log.e(TAG, "Firebase sign-in failed", e)
@@ -85,6 +88,7 @@ class SignInViewModel(
             try {
                 firebaseAuth.createUserWithEmailAndPassword(trimmedEmail, password).await()
                 Log.i(TAG, "Firebase registration succeeded for uid=${firebaseAuth.currentUser?.uid}")
+                runCatching { FcmTokenRegistrar.registerCurrentToken() }
                 _uiState.value = SignInUiState.Success
             } catch (e: Exception) {
                 Log.e(TAG, "Firebase registration failed", e)
