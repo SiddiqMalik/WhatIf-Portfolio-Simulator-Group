@@ -19,3 +19,4 @@
 /app/build
 backend/serviceAccount.json
 backend/.env.local
+functions/node_modules/
