@@ -6,8 +6,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.reztek.whatifportfolio.data.preferences.LocaleHelper
 import com.reztek.whatifportfolio.data.preferences.UserPreferences
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
+import com.reztek.whatifportfolio.notifications.FcmTokenRegistrar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,29 +24,19 @@ data class SettingsUiState(
 )
 
 /**
- * State holder for the Settings screen — "Account & Preferences" (Deliverable
- * 3, Screen 8).
- *
- * Combines two persistence layers deliberately:
- *  - [UserPreferencesRepository] (DataStore) is the single source of truth
- *    locally and is what the rest of the app reads from — so preferences
- *    keep working even if a Firestore write is in flight or fails.
- *  - Firestore's `users/{uid}` profile document is updated as a best-effort
- *    mirror, per the design spec's "simple one-time Firestore read/write for
- *    preferences instead of real-time listeners, reducing unnecessary
- *    database reads."
+ * Settings ViewModel — PART3-DAVID adds notifications + locale persistence.
  */
 class SettingsViewModel(
     application: Application,
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val preferencesRepository: UserPreferencesRepository =
+        UserPreferencesRepository(application)
 ) : AndroidViewModel(application) {
 
     companion object {
         private const val TAG = "SettingsViewModel"
     }
-
-    private val preferencesRepository = UserPreferencesRepository(application)
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -61,6 +53,13 @@ class SettingsViewModel(
             preferencesRepository.userPreferencesFlow.collect { prefs ->
                 Log.d(TAG, "Preferences updated from DataStore: $prefs")
                 _uiState.value = _uiState.value.copy(preferences = prefs)
+            }
+        }
+
+        // Refresh FCM token whenever Settings opens while signed in — PART3-DAVID
+        viewModelScope.launch {
+            if (auth.currentUser != null) {
+                FcmTokenRegistrar.registerCurrentToken()
             }
         }
     }
@@ -82,6 +81,25 @@ class SettingsViewModel(
         }
     }
 
+    // PART3-DAVID
+    fun onNotificationsToggled(enabled: Boolean) {
+        Log.i(TAG, "User toggled notifications: $enabled")
+        viewModelScope.launch {
+            preferencesRepository.setNotificationsEnabled(enabled)
+            if (enabled) {
+                FcmTokenRegistrar.registerCurrentToken()
+            }
+        }
+    }
+
+    fun onLocaleSelected(tag: String) {
+        Log.i(TAG, "User selected locale: '$tag'")
+        viewModelScope.launch {
+            preferencesRepository.setAppLocale(tag)
+            LocaleHelper.applyAppLocale(tag)
+        }
+    }
+
     fun onLogOutClicked(onLoggedOut: () -> Unit) {
         Log.i(TAG, "User signed out uid=${auth.currentUser?.uid}")
         auth.signOut()
@@ -95,12 +113,13 @@ class SettingsViewModel(
         }
         try {
             firestore.collection("users").document(uid)
-                .set(mapOf("displayCurrency" to currencyCode), com.google.firebase.firestore.SetOptions.merge())
+                .set(
+                    mapOf("displayCurrency" to currencyCode),
+                    com.google.firebase.firestore.SetOptions.merge()
+                )
                 .await()
             Log.d(TAG, "Synced display currency to Firestore profile")
         } catch (e: Exception) {
-            // Best-effort mirror: DataStore already has the value, so the app
-            // keeps working correctly offline even if this write fails.
             Log.e(TAG, "Failed to sync display currency to Firestore", e)
         }
     }

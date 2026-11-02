@@ -3,16 +3,24 @@ package com.reztek.whatifportfolio.data.preferences
 /**
  * Immutable snapshot of the user's locally persisted preferences.
  *
- * These are prototype-scope settings only (Deliverable 3, Settings screen):
- * display currency and a dark-mode toggle. Language is informational-only in
- * this build (English only — multilingual support is Final POE scope per the
- * requirements spec), and notification preferences are disabled ("soon")
- * until FCM is wired up in the POE phase, so neither is persisted yet.
+ * PART3-DAVID: notificationsEnabled and appLocale ("" = system/English,
+ * "af" = Afrikaans, "xh" = isiXhosa).
  */
 data class UserPreferences(
     val displayCurrency: String = "ZAR",
-    val useDarkTheme: Boolean = false
+    val useDarkTheme: Boolean = false,
+    val notificationsEnabled: Boolean = true,
+    val appLocale: String = ""
 )
 
-/** Currencies offered in the Settings screen for the prototype. */
+/** Currencies offered in the Settings screen. */
 val SUPPORTED_CURRENCIES = listOf("ZAR", "USD", "EUR", "GBP")
+
+/** Locales offered in Settings — PART3-DAVID. */
+val SUPPORTED_LOCALES = listOf(
+    LocaleOption(tag = "", labelKey = "language_english"),
+    LocaleOption(tag = "af", labelKey = "language_afrikaans"),
+    LocaleOption(tag = "xh", labelKey = "language_isixhosa")
+)
+
+data class LocaleOption(val tag: String, val labelKey: String)
