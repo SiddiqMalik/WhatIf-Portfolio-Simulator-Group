@@ -1,4 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">What-If Portfolio</string>
+
+    <!-- Navigation — PART3-DAVID -->
+    <string name="nav_home">Home</string>
+    <string name="nav_saved">Saved</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Auth -->
+    <string name="sign_in_title">Sign in</string>
+    <string name="sign_in_subtitle">Use your email and password to continue</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="action_sign_in">Sign in</string>
+    <string name="action_create_account">Create account</string>
+    <string name="error_email_required">Enter your email address.</string>
+    <string name="error_password_required">Enter your password.</string>
+    <string name="error_password_short">Password must be at least 6 characters.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_preferences">Preferences</string>
+    <string name="settings_display_currency">Display currency</string>
+    <string name="settings_dark_theme">Dark theme</string>
+    <string name="settings_notifications_language">Notifications &amp; language</string>
+    <string name="settings_push_notifications">Push notifications</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_log_out">Log out</string>
+    <string name="settings_log_out_confirm_title">Log out?</string>
+    <string name="settings_log_out_confirm_body">You\'ll need to sign in again to access your simulations.</string>
+    <string name="settings_on">On</string>
+    <string name="settings_off">Off</string>
+    <string name="language_english">English</string>
+    <string name="language_afrikaans">Afrikaans</string>
+    <string name="language_isixhosa">isiXhosa</string>
+    <string name="language_picker_title">Choose language</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting">Your portfolio scenarios</string>
+    <string name="dashboard_new_simulation">New simulation</string>
+    <string name="dashboard_view_all">View all</string>
+    <string name="dashboard_empty_title">No simulations yet</string>
+    <string name="dashboard_empty_subtitle">Run a historical backtest or future projection to see it here.</string>
+    <string name="dashboard_retry">Try again</string>
+    <string name="dashboard_error_generic">Couldn\'t load your simulations.</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_simulations">Simulations</string>
+    <string name="notification_channel_simulations_desc">Alerts when a simulation finishes running</string>
+    <string name="notification_simulation_ready_title">Simulation ready</string>
+    <string name="notification_simulation_ready_body">Your what-if scenario has finished. Tap to open results.</string>
+    <string name="notification_permission_rationale">Allow notifications to know when simulations finish.</string>
+
+    <!-- Common -->
+    <string name="cd_back">Back</string>
+    <string name="cd_add">Add</string>
+    <string name="loading">Loading…</string>
 </resources>
