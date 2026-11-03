@@ -81,6 +81,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // PART3-JORDAN: biometric authentication (fingerprint/face unlock)
+    implementation("androidx.biometric:biometric:1.1.0")
+
     // Networking: connects to the custom REST API (whatif-api.vercel.app)
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
