@@ -73,10 +73,12 @@ dependencies {
 
     implementation("androidx.navigation:navigation-compose:2.8.1")
 
-    // Firebase Auth/Firestore/Messaging — PART3-DAVID
-    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+    // Firebase — BoM from Console setup; product libs omit versions
+    implementation(platform("com.google.firebase:firebase-bom:35.1.0"))
+    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    // PART3-DAVID
     implementation("com.google.firebase:firebase-messaging")
 
     // AppCompat locales for Afrikaans / isiXhosa — PART3-DAVID

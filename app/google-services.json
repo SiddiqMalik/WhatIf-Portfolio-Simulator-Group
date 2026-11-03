@@ -7,20 +7,30 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1038943708232:android:a437d94b73b8bb8770647d",
+        "mobilesdk_app_id": "1:1038943708232:android:e54cc7ba5f30b6cc70647d",
         "android_client_info": {
           "package_name": "com.reztek.whatifportfolio"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1038943708232-7ogmn3509oa3tgg3em6hvk8upaqucs8f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyCu2zxY1ADRZ3QhsuqFvAPOnEFy-nitqQA"
+          "current_key": "AIzaSyCjGm-GD7sr3zngWpJBztBcgfQgAmpFU2k"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1038943708232-7ogmn3509oa3tgg3em6hvk8upaqucs8f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
