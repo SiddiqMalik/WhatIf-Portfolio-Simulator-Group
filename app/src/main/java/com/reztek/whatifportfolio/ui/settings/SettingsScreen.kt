@@ -1,6 +1,9 @@
 package com.reztek.whatifportfolio.ui.settings
 
 import android.util.Log
+import androidx.compose.ui.platform.LocalContext
+import com.reztek.whatifportfolio.data.auth.BiometricAvailability
+import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -71,6 +74,9 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val biometricAvailability = remember(context) { BiometricStatus.checkAvailability(context) }
+    val biometricAvailable = biometricAvailability is BiometricAvailability.Available
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
 
@@ -116,6 +122,37 @@ fun SettingsScreen(
                         checked = uiState.preferences.useDarkTheme,
                         onCheckedChange = viewModel::onDarkThemeToggled
                     )
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SettingsToggleRow(
+                        icon = Icons.Filled.Person,
+                        title = "Biometric lock",
+                        checked = uiState.preferences.biometricEnabled,
+                        enabled = biometricAvailable,
+                        onCheckedChange = { enabled ->
+                            Log.i(TAG, "Biometric lock setting changed: $enabled")
+                            viewModel.onBiometricToggled(enabled)
+                        }
+                    )
+                    if (!biometricAvailable) {
+                        Text(
+                            text = when (biometricAvailability) {
+                                BiometricAvailability.NoneEnrolled ->
+                                    "Set up fingerprint or face unlock in your device settings to enable this."
+                                BiometricAvailability.NoHardware ->
+                                    "This device does not support biometric authentication."
+                                BiometricAvailability.HardwareUnavailable ->
+                                    "Biometric hardware is temporarily unavailable."
+                                BiometricAvailability.SecurityUpdateRequired ->
+                                    "A device security update is required before biometrics can be used."
+                                is BiometricAvailability.Unknown ->
+                                    "Biometric authentication is currently unavailable."
+                                BiometricAvailability.Available -> ""
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
                 }
             }
 
@@ -280,6 +317,7 @@ private fun SettingsToggleRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
@@ -292,6 +330,7 @@ private fun SettingsToggleRow(
         Text(title, modifier = Modifier.weight(1f).padding(start = 14.dp))
         Switch(
             checked = checked,
+            enabled = enabled,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(checkedTrackColor = TealPrimary)
         )
