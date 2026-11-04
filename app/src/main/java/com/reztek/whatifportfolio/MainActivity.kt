@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import androidx.compose.runtime.rememberCoroutineScope
 import com.reztek.whatifportfolio.data.auth.BiometricAvailability
+import com.reztek.whatifportfolio.data.auth.BiometricGatePolicy
 import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.preferences.UserPreferences
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
@@ -59,7 +60,12 @@ class MainActivity : FragmentActivity() {
                     val currentPreferences = preferences
                     if (currentPreferences == null) {
                         // Keep the initial surface blank while local preferences load.
-                    } else if (hasFirebaseSession && currentPreferences.biometricEnabled && !biometricUnlocked) {
+                    } else if (BiometricGatePolicy.shouldLock(
+                        preferencesLoaded = true,
+                        hasFirebaseSession = hasFirebaseSession,
+                        biometricEnabled = currentPreferences.biometricEnabled,
+                        biometricUnlocked = biometricUnlocked
+                    )) {
                         val availability = BiometricStatus.checkAvailability(this@MainActivity)
                         val prompt = rememberBiometricPrompt(
                             onAuthenticated = { biometricUnlocked = true },
