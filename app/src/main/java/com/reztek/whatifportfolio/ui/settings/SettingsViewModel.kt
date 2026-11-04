@@ -82,6 +82,15 @@ class SettingsViewModel(
         }
     }
 
+    // PART3-JORDAN: exposes the biometric lock preference the same way
+    // onDarkThemeToggled does. The Settings toggle UI itself is Commit 3.
+    fun onBiometricToggled(enabled: Boolean) {
+        Log.i(TAG, "User toggled biometric lock: $enabled")
+        viewModelScope.launch {
+            preferencesRepository.setBiometricEnabled(enabled)
+        }
+    }
+
     fun onLogOutClicked(onLoggedOut: () -> Unit) {
         Log.i(TAG, "User signed out uid=${auth.currentUser?.uid}")
         auth.signOut()

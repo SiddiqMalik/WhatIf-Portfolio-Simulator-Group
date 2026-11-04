@@ -33,6 +33,9 @@ class UserPreferencesRepository(private val context: Context) {
     private object Keys {
         val DISPLAY_CURRENCY = stringPreferencesKey("display_currency")
         val USE_DARK_THEME = booleanPreferencesKey("use_dark_theme")
+
+        // PART3-JORDAN: biometric lock preference (Part 3).
+        val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
     }
 
     companion object {
@@ -54,7 +57,9 @@ class UserPreferencesRepository(private val context: Context) {
         .map { prefs ->
             UserPreferences(
                 displayCurrency = prefs[Keys.DISPLAY_CURRENCY] ?: "ZAR",
-                useDarkTheme = prefs[Keys.USE_DARK_THEME] ?: false
+                useDarkTheme = prefs[Keys.USE_DARK_THEME] ?: false,
+                // PART3-JORDAN: defaults to false when never set, same pattern as the above.
+                biometricEnabled = prefs[Keys.BIOMETRIC_ENABLED] ?: false
             )
         }
 
@@ -66,5 +71,11 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setUseDarkTheme(enabled: Boolean) {
         Log.d(TAG, "Persisting dark theme preference: $enabled")
         context.dataStore.edit { prefs -> prefs[Keys.USE_DARK_THEME] = enabled }
+    }
+
+    // PART3-JORDAN: persists the biometric lock preference (Part 3, Commit 2).
+    suspend fun setBiometricEnabled(enabled: Boolean) {
+        Log.d(TAG, "Persisting biometric lock preference: $enabled")
+        context.dataStore.edit { prefs -> prefs[Keys.BIOMETRIC_ENABLED] = enabled }
     }
 }

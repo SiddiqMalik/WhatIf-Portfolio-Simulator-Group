@@ -30,6 +30,13 @@ sealed class Destination(val route: String) {
         fun createRoute(simulationId: String) = "simulation_detail/$simulationId"
     }
     data object Settings : Destination("settings")
+    data object CompareSelection : Destination("compare_selection")
+    data object CompareSimulation : Destination("compare/{firstId}/{secondId}") {
+        const val ARG_FIRST_ID = "firstId"
+        const val ARG_SECOND_ID = "secondId"
+        fun createRoute(firstId: String, secondId: String) =
+            "compare/${android.net.Uri.encode(firstId)}/${android.net.Uri.encode(secondId)}"
+    }
 }
 
 /** The three top-level destinations shown in the bottom navigation bar. */

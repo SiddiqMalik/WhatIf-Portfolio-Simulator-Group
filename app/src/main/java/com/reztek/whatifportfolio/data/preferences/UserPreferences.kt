@@ -11,7 +11,10 @@ package com.reztek.whatifportfolio.data.preferences
  */
 data class UserPreferences(
     val displayCurrency: String = "ZAR",
-    val useDarkTheme: Boolean = false
+    val useDarkTheme: Boolean = false,
+    // PART3-JORDAN: whether the biometric lock (Part 3) is enabled. Off by
+    // default so existing users aren't locked out until they opt in.
+    val biometricEnabled: Boolean = false
 )
 
 /** Currencies offered in the Settings screen for the prototype. */
