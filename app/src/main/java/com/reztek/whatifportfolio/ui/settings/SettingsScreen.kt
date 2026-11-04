@@ -56,6 +56,9 @@ import com.reztek.whatifportfolio.navigation.BottomNavDestination
 import com.reztek.whatifportfolio.ui.components.WhatIfBottomNavBar
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
+import android.app.Application
+import androidx.lifecycle.ViewModelProvider
+
 
 private const val TAG = "SettingsScreen"
 
@@ -70,13 +73,22 @@ private const val TAG = "SettingsScreen"
 @Composable
 fun SettingsScreen(
     onLoggedOut: () -> Unit,
-    onBottomNavSelected: (BottomNavDestination) -> Unit,
-    viewModel: SettingsViewModel = viewModel()
+    onBottomNavSelected: (BottomNavDestination) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val biometricAvailability = remember(context) { BiometricStatus.checkAvailability(context) }
-    val biometricAvailable = biometricAvailability is BiometricAvailability.Available
+    val application = context.applicationContext as Application
+
+    val viewModel: SettingsViewModel = viewModel(
+        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+    )
+
+    val uiState by viewModel.uiState.collectAsState()
+    val biometricAvailability = remember(context) {
+        BiometricStatus.checkAvailability(context)
+    }
+    val biometricAvailable =
+        biometricAvailability is BiometricAvailability.Available
+
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
 
