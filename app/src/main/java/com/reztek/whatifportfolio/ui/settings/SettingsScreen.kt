@@ -1,9 +1,8 @@
+
 package com.reztek.whatifportfolio.ui.settings
 
+import android.app.Application
 import android.util.Log
-import androidx.compose.ui.platform.LocalContext
-import com.reztek.whatifportfolio.data.auth.BiometricAvailability
-import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,17 +46,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.data.auth.BiometricAvailability
+import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_CURRENCIES
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
 import com.reztek.whatifportfolio.ui.components.WhatIfBottomNavBar
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
-import android.app.Application
-import androidx.lifecycle.ViewModelProvider
-
 
 private const val TAG = "SettingsScreen"
 
@@ -79,26 +78,41 @@ fun SettingsScreen(
     val application = context.applicationContext as Application
 
     val viewModel: SettingsViewModel = viewModel(
-        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+        factory = ViewModelProvider.AndroidViewModelFactory.getInstance(
+            application
+        )
     )
 
     val uiState by viewModel.uiState.collectAsState()
+
     val biometricAvailability = remember(context) {
         BiometricStatus.checkAvailability(context)
     }
+
     val biometricAvailable =
         biometricAvailability is BiometricAvailability.Available
 
-    var showLogoutConfirm by remember { mutableStateOf(false) }
-    var showCurrencyPicker by remember { mutableStateOf(false) }
+    var showLogoutConfirm by remember {
+        mutableStateOf(false)
+    }
+
+    var showCurrencyPicker by remember {
+        mutableStateOf(false)
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.SemiBold) },
-                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                title = {
+                    Text(
+                        "Settings",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults
+                    .topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
             )
         },
         bottomBar = {
@@ -108,68 +122,109 @@ fun SettingsScreen(
             )
         }
     ) { padding ->
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 20.dp, end = 20.dp,
+                start = 20.dp,
+                end = 20.dp,
                 top = padding.calculateTopPadding() + 8.dp,
                 bottom = padding.calculateBottomPadding() + 24.dp
             ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item { AccountHeader(name = uiState.accountDisplayName, email = uiState.accountEmail) }
+
+            item {
+                AccountHeader(
+                    name = uiState.accountDisplayName,
+                    email = uiState.accountEmail
+                )
+            }
 
             item {
                 SettingsSection(title = "Preferences") {
+
                     SettingsRow(
                         icon = Icons.Filled.Payments,
                         title = "Display currency",
-                        trailingText = uiState.preferences.displayCurrency,
-                        onClick = { showCurrencyPicker = true }
+                        trailingText =
+                            uiState.preferences.displayCurrency,
+                        onClick = {
+                            showCurrencyPicker = true
+                        }
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+
+                    Divider(
+                        color = MaterialTheme.colorScheme.outline
+                            .copy(alpha = 0.4f)
+                    )
+
                     SettingsToggleRow(
                         icon = Icons.Filled.DarkMode,
                         title = "Dark theme",
                         checked = uiState.preferences.useDarkTheme,
-                        onCheckedChange = viewModel::onDarkThemeToggled
+                        onCheckedChange =
+                            viewModel::onDarkThemeToggled
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+
+                    Divider(
+                        color = MaterialTheme.colorScheme.outline
+                            .copy(alpha = 0.4f)
+                    )
+
                     SettingsToggleRow(
                         icon = Icons.Filled.Person,
                         title = "Biometric lock",
-                        checked = uiState.preferences.biometricEnabled,
+                        checked =
+                            uiState.preferences.biometricEnabled,
                         enabled = biometricAvailable,
                         onCheckedChange = { enabled ->
-                            Log.i(TAG, "Biometric lock setting changed: $enabled")
+                            Log.i(
+                                TAG,
+                                "Biometric lock setting changed: $enabled"
+                            )
+
                             viewModel.onBiometricToggled(enabled)
                         }
                     )
+
                     if (!biometricAvailable) {
                         Text(
                             text = when (biometricAvailability) {
                                 BiometricAvailability.NoneEnrolled ->
                                     "Set up fingerprint or face unlock in your device settings to enable this."
+
                                 BiometricAvailability.NoHardware ->
                                     "This device does not support biometric authentication."
+
                                 BiometricAvailability.HardwareUnavailable ->
                                     "Biometric hardware is temporarily unavailable."
+
                                 BiometricAvailability.SecurityUpdateRequired ->
                                     "A device security update is required before biometrics can be used."
+
                                 is BiometricAvailability.Unknown ->
                                     "Biometric authentication is currently unavailable."
+
                                 BiometricAvailability.Available -> ""
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            color = MaterialTheme.colorScheme.onSurface
+                                .copy(alpha = 0.6f),
+                            modifier = Modifier.padding(
+                                horizontal = 16.dp,
+                                vertical = 8.dp
+                            )
                         )
                     }
                 }
             }
 
             item {
-                SettingsSection(title = "Notifications & language") {
+                SettingsSection(
+                    title = "Notifications & language"
+                ) {
+
                     SettingsRow(
                         icon = Icons.Filled.Notifications,
                         title = "Push notifications",
@@ -177,7 +232,12 @@ fun SettingsScreen(
                         enabled = false,
                         onClick = {}
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+
+                    Divider(
+                        color = MaterialTheme.colorScheme.outline
+                            .copy(alpha = 0.4f)
+                    )
+
                     SettingsRow(
                         icon = Icons.Filled.Language,
                         title = "Language",
@@ -190,10 +250,17 @@ fun SettingsScreen(
 
             item {
                 TextButton(
-                    onClick = { showLogoutConfirm = true },
+                    onClick = {
+                        showLogoutConfirm = true
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Filled.Logout, contentDescription = null, tint = ErrorRed)
+                    Icon(
+                        Icons.Filled.Logout,
+                        contentDescription = null,
+                        tint = ErrorRed
+                    )
+
                     Text(
                         "Log out",
                         color = ErrorRed,
@@ -208,72 +275,124 @@ fun SettingsScreen(
     if (showCurrencyPicker) {
         CurrencyPickerDialog(
             selected = uiState.preferences.displayCurrency,
-            onSelect = {
-                viewModel.onCurrencySelected(it)
+            onSelect = { currencyCode ->
+                viewModel.onCurrencySelected(currencyCode)
                 showCurrencyPicker = false
             },
-            onDismiss = { showCurrencyPicker = false }
+            onDismiss = {
+                showCurrencyPicker = false
+            }
         )
     }
 
     if (showLogoutConfirm) {
         AlertDialog(
-            onDismissRequest = { showLogoutConfirm = false },
-            title = { Text("Log out?") },
-            text = { Text("You'll need to sign in again to access your simulations.") },
+            onDismissRequest = {
+                showLogoutConfirm = false
+            },
+            title = {
+                Text("Log out?")
+            },
+            text = {
+                Text(
+                    "You'll need to sign in again to access your simulations."
+                )
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    Log.i(TAG, "Logout confirmed")
-                    showLogoutConfirm = false
-                    viewModel.onLogOutClicked(onLoggedOut)
-                }) { Text("Log out", color = ErrorRed) }
+                TextButton(
+                    onClick = {
+                        Log.i(TAG, "Logout confirmed")
+                        showLogoutConfirm = false
+                        viewModel.onLogOutClicked(onLoggedOut)
+                    }
+                ) {
+                    Text(
+                        "Log out",
+                        color = ErrorRed
+                    )
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutConfirm = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = {
+                        showLogoutConfirm = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }
 }
 
 @Composable
-private fun AccountHeader(name: String, email: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+private fun AccountHeader(
+    name: String,
+    email: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
             modifier = Modifier
                 .size(56.dp)
-                .background(TealPrimary.copy(alpha = 0.15f), CircleShape),
+                .background(
+                    TealPrimary.copy(alpha = 0.15f),
+                    CircleShape
+                ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Person, contentDescription = null, tint = TealPrimary)
+            Icon(
+                Icons.Filled.Person,
+                contentDescription = null,
+                tint = TealPrimary
+            )
         }
-        Column(modifier = Modifier.padding(start = 14.dp)) {
+
+        Column(
+            modifier = Modifier.padding(start = 14.dp)
+        ) {
             Text(
                 name.ifBlank { "Signed in" },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
+
             Text(
                 email.ifBlank { "Signed in with email" },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurface
+                    .copy(alpha = 0.6f)
             )
         }
     }
 }
 
 @Composable
-private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun SettingsSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
     Column {
         Text(
             title.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+            color = MaterialTheme.colorScheme.onSurface
+                .copy(alpha = 0.5f),
+            modifier = Modifier.padding(
+                bottom = 8.dp,
+                start = 4.dp
+            )
         )
+
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 0.dp
+            )
         ) {
             Column(content = content)
         }
@@ -291,34 +410,54 @@ private fun SettingsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .clickable(
+                enabled = enabled,
+                onClick = onClick
+            )
+            .padding(
+                horizontal = 16.dp,
+                vertical = 14.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = if (enabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+            tint = if (enabled) {
+                MaterialTheme.colorScheme.onSurface
+                    .copy(alpha = 0.7f)
+            } else {
+                MaterialTheme.colorScheme.onSurface
+                    .copy(alpha = 0.35f)
+            }
         )
+
         Text(
             title,
             modifier = Modifier
                 .weight(1f)
                 .padding(start = 14.dp),
-            color = if (enabled) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            color = if (enabled) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurface
+                    .copy(alpha = 0.4f)
+            }
         )
+
         Text(
             trailingText,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.onSurface
+                .copy(alpha = 0.5f)
         )
+
         if (enabled) {
             Icon(
                 Icons.Filled.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                tint = MaterialTheme.colorScheme.onSurface
+                    .copy(alpha = 0.3f)
             )
         }
     }
@@ -335,16 +474,33 @@ private fun SettingsToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(
+                horizontal = 16.dp,
+                vertical = 10.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-        Text(title, modifier = Modifier.weight(1f).padding(start = 14.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface
+                .copy(alpha = 0.7f)
+        )
+
+        Text(
+            title,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 14.dp)
+        )
+
         Switch(
             checked = checked,
             enabled = enabled,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedTrackColor = TealPrimary)
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = TealPrimary
+            )
         )
     }
 }
@@ -357,21 +513,30 @@ private fun CurrencyPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Display currency") },
+        title = {
+            Text("Display currency")
+        },
         text = {
             Column {
                 SUPPORTED_CURRENCIES.forEach { code ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(code) }
+                            .clickable {
+                                onSelect(code)
+                            }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(code, modifier = Modifier.weight(1f))
+                        Text(
+                            code,
+                            modifier = Modifier.weight(1f)
+                        )
+
                         if (code == selected) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Filled.ChevronRight,
+                                imageVector =
+                                    Icons.Filled.ChevronRight,
                                 contentDescription = null,
                                 tint = TealPrimary
                             )
@@ -381,7 +546,11 @@ private fun CurrencyPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text("Close")
+            }
         }
     )
 }
