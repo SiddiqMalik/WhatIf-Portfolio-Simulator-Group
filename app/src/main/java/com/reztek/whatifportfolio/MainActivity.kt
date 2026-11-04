@@ -2,16 +2,26 @@ package com.reztek.whatifportfolio
 
 import android.os.Bundle
 import android.util.Log
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.map
+import com.google.firebase.auth.FirebaseAuth
+import com.reztek.whatifportfolio.data.auth.BiometricAvailability
+import com.reztek.whatifportfolio.data.auth.BiometricStatus
+import com.reztek.whatifportfolio.data.preferences.UserPreferences
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
 import com.reztek.whatifportfolio.navigation.WhatIfNavGraph
+import com.reztek.whatifportfolio.ui.auth.BiometricLockScreen
+import com.reztek.whatifportfolio.ui.auth.rememberBiometricPrompt
 import com.reztek.whatifportfolio.ui.theme.WhatIfPortfolioTheme
 
 private const val TAG = "MainActivity"
@@ -19,7 +29,7 @@ private const val TAG = "MainActivity"
 /**
  * Single-Activity host for the whole Compose UI.
  */
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,14 +39,36 @@ class MainActivity : ComponentActivity() {
         val preferencesRepository = UserPreferencesRepository(applicationContext)
 
         setContent {
+            // null is intentional: wait for DataStore's first value so a persisted
+            // enabled lock cannot briefly reveal the authenticated app on cold start.
             val preferences by preferencesRepository.userPreferencesFlow
-                .collectAsStateWithLifecycle(
-                    initialValue = com.reztek.whatifportfolio.data.preferences.UserPreferences()
-                )
+                .map { it as UserPreferences? }
+                .collectAsStateWithLifecycle(initialValue = null)
+            var biometricUnlocked by remember { mutableStateOf(false) }
+            val hasFirebaseSession = FirebaseAuth.getInstance().currentUser != null
 
-            WhatIfPortfolioTheme(darkTheme = preferences.useDarkTheme) {
+            WhatIfPortfolioTheme(darkTheme = preferences?.useDarkTheme ?: false) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    WhatIfNavGraph()
+                    val currentPreferences = preferences
+                    if (currentPreferences == null) {
+                        // Keep the initial surface blank while local preferences load.
+                    } else if (hasFirebaseSession && currentPreferences.biometricEnabled && !biometricUnlocked) {
+                        val availability = BiometricStatus.checkAvailability(this@MainActivity)
+                        val prompt = rememberBiometricPrompt(
+                            onAuthenticated = { biometricUnlocked = true },
+                            onAuthenticationError = { /* Stay on the lock screen; user may retry. */ }
+                        )
+                        BiometricLockScreen(
+                            onUnlock = prompt,
+                            message = if (availability == BiometricAvailability.Available) {
+                                "Use your device biometrics to continue."
+                            } else {
+                                "Strong biometrics are currently unavailable. Your app remains locked."
+                            }
+                        )
+                    } else {
+                        WhatIfNavGraph()
+                    }
                 }
             }
         }
