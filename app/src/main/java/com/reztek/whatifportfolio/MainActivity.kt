@@ -15,6 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.map
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.EmailAuthProvider
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import androidx.compose.runtime.rememberCoroutineScope
 import com.reztek.whatifportfolio.data.auth.BiometricAvailability
 import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.preferences.UserPreferences
@@ -45,6 +49,9 @@ class MainActivity : FragmentActivity() {
                 .map { it as UserPreferences? }
                 .collectAsStateWithLifecycle(initialValue = null)
             var biometricUnlocked by remember { mutableStateOf(false) }
+            var passwordError by remember { mutableStateOf<String?>(null) }
+            var passwordLoading by remember { mutableStateOf(false) }
+            val authScope = rememberCoroutineScope()
             val hasFirebaseSession = FirebaseAuth.getInstance().currentUser != null
 
             WhatIfPortfolioTheme(darkTheme = preferences?.useDarkTheme ?: false) {
@@ -60,10 +67,32 @@ class MainActivity : FragmentActivity() {
                         )
                         BiometricLockScreen(
                             onUnlock = prompt,
+                            onPasswordUnlock = { password ->
+                                val user = FirebaseAuth.getInstance().currentUser
+                                val email = user?.email
+                                if (user == null || email.isNullOrBlank()) {
+                                    passwordError = "No email/password account is available for fallback."
+                                } else {
+                                    passwordLoading = true
+                                    passwordError = null
+                                    authScope.launch {
+                                        try {
+                                            user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
+                                            biometricUnlocked = true
+                                        } catch (_: Exception) {
+                                            passwordError = "Password verification failed. Check your password and try again."
+                                        } finally {
+                                            passwordLoading = false
+                                        }
+                                    }
+                                }
+                            },
+                            passwordError = passwordError,
+                            passwordLoading = passwordLoading,
                             message = if (availability == BiometricAvailability.Available) {
-                                "Use your device biometrics to continue."
+                                "Use your device biometrics to continue, or verify your account password."
                             } else {
-                                "Strong biometrics are currently unavailable. Your app remains locked."
+                                "Strong biometrics are currently unavailable. Verify your account password to continue."
                             }
                         )
                     } else {
