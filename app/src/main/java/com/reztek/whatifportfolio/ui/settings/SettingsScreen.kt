@@ -1,6 +1,7 @@
 package com.reztek.whatifportfolio.ui.settings
 
 import android.Manifest
+import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
@@ -75,16 +76,13 @@ import com.reztek.whatifportfolio.ui.theme.TealPrimary
 
 private const val TAG = "SettingsScreen"
 
-/**
- * Settings screen — PART3-DAVID enables push notifications and language.
- */
 @Composable
 fun SettingsScreen(
     onLoggedOut: () -> Unit,
     onBottomNavSelected: (BottomNavDestination) -> Unit
 ) {
     val context = LocalContext.current
-    val application = context.applicationContext as android.app.Application
+    val application = context.applicationContext as Application
     val viewModel: SettingsViewModel = viewModel(
         factory = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
     )

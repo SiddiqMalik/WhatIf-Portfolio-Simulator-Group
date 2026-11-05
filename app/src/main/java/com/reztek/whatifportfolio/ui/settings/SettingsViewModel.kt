@@ -26,7 +26,7 @@ data class SettingsUiState(
 /**
  * Settings ViewModel — PART3-DAVID adds notifications + locale persistence.
  */
-class SettingsViewModel(
+class SettingsViewModel @JvmOverloads constructor(
     application: Application,
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
