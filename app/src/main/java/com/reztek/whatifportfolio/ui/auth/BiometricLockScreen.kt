@@ -14,6 +14,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,20 +30,22 @@ fun BiometricLockScreen(
     onUnlock: () -> Unit,
     onPasswordUnlock: (String) -> Unit,
     message: String? = null,
+    errorMessage: String? = null,
     passwordError: String? = null,
-<<<<<<< Updated upstream
-    passwordLoading: Boolean = false
-=======
     passwordLoading: Boolean = false,
     autoPrompt: Boolean = false,
     biometricAvailable: Boolean = true,
     showPasswordFallback: Boolean = false,
     onShowPasswordFallbackChange: (Boolean) -> Unit = {},
     onSignOut: () -> Unit = {}
->>>>>>> Stashed changes
 ) {
-    var showPasswordFallback by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
+
+    if (autoPrompt && biometricAvailable) {
+        LaunchedEffect(Unit) {
+            onUnlock()
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -55,11 +58,21 @@ fun BiometricLockScreen(
             Text("Your app is locked", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             Text(message ?: "Use your device biometrics to continue.", style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = onUnlock, modifier = Modifier.fillMaxWidth()) {
-                Text("Unlock with biometrics")
+            if (errorMessage != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
-            TextButton(onClick = { showPasswordFallback = !showPasswordFallback }) {
+            Spacer(Modifier.height(24.dp))
+            if (biometricAvailable) {
+                Button(onClick = onUnlock, modifier = Modifier.fillMaxWidth()) {
+                    Text("Unlock with biometrics")
+                }
+            }
+            TextButton(onClick = { onShowPasswordFallbackChange(!showPasswordFallback) }) {
                 Text(if (showPasswordFallback) "Hide password fallback" else "Use email password instead")
             }
             if (showPasswordFallback) {
@@ -74,7 +87,11 @@ fun BiometricLockScreen(
                 )
                 if (passwordError != null) {
                     Spacer(Modifier.height(6.dp))
-                    Text(passwordError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        passwordError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
                 Spacer(Modifier.height(12.dp))
                 Button(

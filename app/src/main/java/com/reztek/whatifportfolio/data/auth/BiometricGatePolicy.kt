@@ -12,4 +12,10 @@ object BiometricGatePolicy {
         biometricEnabled: Boolean,
         biometricUnlocked: Boolean
     ): Boolean = preferencesLoaded && hasFirebaseSession && biometricEnabled && !biometricUnlocked
+
+    fun shouldLockAtLaunch(hasFirebaseSession: Boolean, biometricEnabled: Boolean): Boolean =
+        hasFirebaseSession && biometricEnabled
+
+    fun shouldShowLock(lockAtLaunch: Boolean?, unlocked: Boolean): Boolean =
+        lockAtLaunch == true && !unlocked
 }

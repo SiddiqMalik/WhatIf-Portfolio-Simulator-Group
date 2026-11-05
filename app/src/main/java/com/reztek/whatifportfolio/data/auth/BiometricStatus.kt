@@ -4,7 +4,34 @@ import android.content.Context
 import android.util.Log
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricPrompt
 
+const val BIOMETRIC_NOT_RECOGNISED_MESSAGE = "Not recognised. Try again."
+
+data class BiometricErrorInfo(
+    val message: String,
+    val openPasswordFallback: Boolean
+)
+
+fun biometricErrorMessage(errorCode: Int, errString: String): BiometricErrorInfo = when (errorCode) {
+    BiometricPrompt.ERROR_CANCELED, BiometricPrompt.ERROR_USER_CANCELED, BiometricPrompt.ERROR_NEGATIVE_BUTTON ->
+        BiometricErrorInfo(errString, false)
+    BiometricPrompt.ERROR_LOCKOUT, BiometricPrompt.ERROR_LOCKOUT_PERMANENT ->
+        BiometricErrorInfo(errString, true)
+    else ->
+        BiometricErrorInfo(if (errString.isNotBlank()) errString else "Biometric authentication error", true)
+}
+
+fun biometricSettingsSubtitle(availability: BiometricAvailability, enabled: Boolean): String = when {
+    enabled -> "Requires biometrics to open the app"
+    availability is BiometricAvailability.Available -> "Protect your app with fingerprint or face unlock"
+    availability is BiometricAvailability.NoneEnrolled -> "Enroll biometrics in device settings first"
+    availability is BiometricAvailability.NoHardware -> "Not supported on this device"
+    else -> "Biometrics currently unavailable"
+}
+
+fun isBiometricToggleEnabled(availability: BiometricAvailability, enabled: Boolean): Boolean =
+    enabled || availability is BiometricAvailability.Available
 
 /**
  * Outcome of a device biometric-availability check. A sealed hierarchy so
@@ -44,6 +71,8 @@ sealed interface BiometricAvailability {
 object BiometricStatus {
 
     private const val TAG = "BiometricStatus"
+
+    const val REQUIRED_AUTHENTICATORS = BIOMETRIC_STRONG
 
     /** Queries the platform BiometricManager for the current device/user state. */
     fun checkAvailability(context: Context): BiometricAvailability {

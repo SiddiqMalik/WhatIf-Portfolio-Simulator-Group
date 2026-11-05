@@ -19,12 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-<<<<<<< Updated upstream
-=======
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
->>>>>>> Stashed changes
 import androidx.compose.ui.unit.dp
 import com.reztek.whatifportfolio.ui.chart.ChartSeriesPoint
 import com.reztek.whatifportfolio.ui.chart.PortfolioCanvasChart
@@ -44,7 +41,8 @@ data class ComparisonSimulation(
     val finalValue: Double,
     val realValue: Double?,
     val percentReturn: Double?,
-    val chartPoints: List<ChartSeriesPoint>
+    val chartPoints: List<ChartSeriesPoint>,
+    val contributedIsDerived: Boolean = false
 )
 
 @Composable
@@ -87,12 +85,6 @@ fun CompareSimulationScreen(
             item {
                 Text("Key metrics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
-<<<<<<< Updated upstream
-                MetricComparisonRow("Total contributed", currency(first.totalContributed), currency(second.totalContributed))
-                MetricComparisonRow("Final value", currency(first.finalValue), currency(second.finalValue))
-                MetricComparisonRow("Real value", first.realValue?.let(currency) ?: "Not available", second.realValue?.let(currency) ?: "Not available")
-                MetricComparisonRow("Return", first.percentReturn?.let { String.format(Locale.getDefault(), "%.2f%%", it) } ?: "Not available", second.percentReturn?.let { String.format(Locale.getDefault(), "%.2f%%", it) } ?: "Not available")
-=======
                 ComparisonHighlights.summary(first, second)?.let { summary ->
                     SummaryLine(summaryText(summary, first, second, currency))
                     Spacer(Modifier.height(8.dp))
@@ -148,7 +140,6 @@ fun CompareSimulationScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
->>>>>>> Stashed changes
             }
             item {
                 Text("Projection timelines", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -189,9 +180,6 @@ private fun SimulationSummaryCard(
 }
 
 @Composable
-<<<<<<< Updated upstream
-private fun MetricComparisonRow(label: String, firstValue: String, secondValue: String) {
-=======
 private fun SummaryLine(text: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -217,26 +205,11 @@ private fun MetricComparisonRow(
     winner: ComparisonWinner = ComparisonWinner.NONE,
     differenceText: String? = null
 ) {
->>>>>>> Stashed changes
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-<<<<<<< Updated upstream
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(firstValue, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            }
-            Column(Modifier.weight(1f)) {
-                Text("Simulation 2", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(secondValue, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-=======
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
-            // The metric name appears once; each column is labelled with its own simulation.
             Text(metric, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -250,15 +223,12 @@ private fun MetricComparisonRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
->>>>>>> Stashed changes
             }
         }
     }
 }
 
 @Composable
-<<<<<<< Updated upstream
-=======
 private fun MetricColumn(
     simulationTitle: String,
     value: String,
@@ -296,7 +266,6 @@ private fun MetricColumn(
 }
 
 @Composable
->>>>>>> Stashed changes
 private fun ChartSection(
     simulation: ComparisonSimulation,
     currency: (Double) -> String
@@ -327,8 +296,6 @@ private fun ChartSection(
     }
 }
 
-<<<<<<< Updated upstream
-=======
 /** Same locale as the Saved Simulations list, so amounts read identically across screens. */
 private val AppLocale: Locale = Locale("en", "ZA")
 
@@ -366,7 +333,6 @@ private fun summaryText(
     }
 }
 
->>>>>>> Stashed changes
 @Composable
 private fun rememberCurrencyFormatter(): (Double) -> String {
     val formatter = NumberFormat.getCurrencyInstance()

@@ -1,9 +1,6 @@
 package com.reztek.whatifportfolio.ui.settings
 
 import android.util.Log
-import androidx.compose.ui.platform.LocalContext
-import com.reztek.whatifportfolio.data.auth.BiometricAvailability
-import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,12 +14,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
@@ -41,11 +38,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-<<<<<<< Updated upstream
-=======
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
->>>>>>> Stashed changes
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,9 +47,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.data.auth.BiometricAvailability
+import com.reztek.whatifportfolio.data.auth.BiometricStatus
+import com.reztek.whatifportfolio.data.auth.biometricSettingsSubtitle
+import com.reztek.whatifportfolio.data.auth.isBiometricToggleEnabled
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_CURRENCIES
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
 import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
@@ -69,20 +71,9 @@ import com.reztek.whatifportfolio.ui.theme.TealPrimary
 
 private const val TAG = "SettingsScreen"
 
-<<<<<<< Updated upstream
-/**
- * Settings / "Account & Preferences" screen (Deliverable 3, Screen 8).
- *
- * Notifications are shown but disabled with a "(soon)" label until FCM is
- * implemented (Final POE scope). Language is informational only — English
- * is the only supported language in this build; at least two South African
- * languages are Final POE scope per the requirements specification.
- */
-=======
 private const val BIOMETRIC_ENABLE_NOT_CONFIRMED_MESSAGE =
     "Biometric lock was not turned on because your identity was not confirmed."
 
->>>>>>> Stashed changes
 @Composable
 fun SettingsScreen(
     onLoggedOut: () -> Unit,
@@ -90,11 +81,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-<<<<<<< Updated upstream
     val context = LocalContext.current
-    val biometricAvailability = remember(context) { BiometricStatus.checkAvailability(context) }
-    val biometricAvailable = biometricAvailability is BiometricAvailability.Available
-=======
 
     val lifecycleOwner = LocalLifecycleOwner.current
     var biometricAvailability by remember { mutableStateOf(BiometricStatus.checkAvailability(context)) }
@@ -127,7 +114,6 @@ fun SettingsScreen(
             null -> Unit
         }
     }
->>>>>>> Stashed changes
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
 
@@ -175,15 +161,6 @@ fun SettingsScreen(
                     )
                     Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SettingsToggleRow(
-<<<<<<< Updated upstream
-                        icon = Icons.Filled.Person,
-                        title = "Biometric lock",
-                        checked = uiState.preferences.biometricEnabled,
-                        enabled = biometricAvailable,
-                        onCheckedChange = { enabled ->
-                            Log.i(TAG, "Biometric lock setting changed: $enabled")
-                            viewModel.onBiometricToggled(enabled)
-=======
                         icon = Icons.Filled.Fingerprint,
                         title = "Biometric app lock",
                         subtitle = if (biometricEnableFailed) {
@@ -211,10 +188,9 @@ fun SettingsScreen(
                                 biometricEnableFailed = false
                                 viewModel.onBiometricToggled(false)
                             }
->>>>>>> Stashed changes
                         }
                     )
-                    if (!biometricAvailable) {
+                    if (biometricAvailability !is BiometricAvailability.Available) {
                         Text(
                             text = when (biometricAvailability) {
                                 BiometricAvailability.NoneEnrolled ->
@@ -398,6 +374,7 @@ private fun SettingsToggleRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     checked: Boolean,
+    subtitle: String? = null,
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
@@ -408,7 +385,16 @@ private fun SettingsToggleRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-        Text(title, modifier = Modifier.weight(1f).padding(start = 14.dp))
+        Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
         Switch(
             checked = checked,
             enabled = enabled,

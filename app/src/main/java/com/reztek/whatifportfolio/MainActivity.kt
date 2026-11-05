@@ -2,39 +2,33 @@ package com.reztek.whatifportfolio
 
 import android.os.Bundle
 import android.util.Log
-import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-<<<<<<< Updated upstream
-=======
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
->>>>>>> Stashed changes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.map
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.EmailAuthProvider
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import androidx.compose.runtime.rememberCoroutineScope
 import com.reztek.whatifportfolio.data.auth.BiometricAvailability
-import com.reztek.whatifportfolio.data.auth.BiometricGatePolicy
 import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.preferences.UserPreferences
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
 import com.reztek.whatifportfolio.navigation.WhatIfNavGraph
+import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
 import com.reztek.whatifportfolio.ui.auth.BiometricLockScreen
 import com.reztek.whatifportfolio.ui.auth.BiometricPrompter
 import com.reztek.whatifportfolio.ui.auth.BiometricPurpose
 import com.reztek.whatifportfolio.ui.auth.LocalBiometricPrompter
 import com.reztek.whatifportfolio.ui.theme.WhatIfPortfolioTheme
+import kotlinx.coroutines.flow.map
 
 private const val TAG = "MainActivity"
 
@@ -43,8 +37,6 @@ private const val TAG = "MainActivity"
  */
 class MainActivity : FragmentActivity() {
 
-<<<<<<< Updated upstream
-=======
     // Survives rotation (so no re-lock) but not process death (so a restored app re-locks).
     private val appLockViewModel: AppLockViewModel by viewModels()
 
@@ -52,7 +44,6 @@ class MainActivity : FragmentActivity() {
 
     private lateinit var biometricPrompter: BiometricPrompter
 
->>>>>>> Stashed changes
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i(TAG, "onCreate")
@@ -68,62 +59,17 @@ class MainActivity : FragmentActivity() {
             val preferences by preferencesRepository.userPreferencesFlow
                 .map { it as UserPreferences? }
                 .collectAsStateWithLifecycle(initialValue = null)
-            var biometricUnlocked by remember { mutableStateOf(false) }
-            var passwordError by remember { mutableStateOf<String?>(null) }
-            var passwordLoading by remember { mutableStateOf(false) }
-            val authScope = rememberCoroutineScope()
-            val hasFirebaseSession = FirebaseAuth.getInstance().currentUser != null
 
-<<<<<<< Updated upstream
-            WhatIfPortfolioTheme(darkTheme = preferences?.useDarkTheme ?: false) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    val currentPreferences = preferences
-                    if (currentPreferences == null) {
-                        // Keep the initial surface blank while local preferences load.
-                    } else if (BiometricGatePolicy.shouldLock(
-                        preferencesLoaded = true,
-                        hasFirebaseSession = hasFirebaseSession,
-                        biometricEnabled = currentPreferences.biometricEnabled,
-                        biometricUnlocked = biometricUnlocked
-                    )) {
-                        val availability = BiometricStatus.checkAvailability(this@MainActivity)
-                        val prompt = rememberBiometricPrompt(
-                            onAuthenticated = { biometricUnlocked = true },
-                            onAuthenticationError = { /* Stay on the lock screen; user may retry. */ }
-                        )
-                        BiometricLockScreen(
-                            onUnlock = prompt,
-                            onPasswordUnlock = { password ->
-                                val user = FirebaseAuth.getInstance().currentUser
-                                val email = user?.email
-                                if (user == null || email.isNullOrBlank()) {
-                                    passwordError = "No email/password account is available for fallback."
-                                } else {
-                                    passwordLoading = true
-                                    passwordError = null
-                                    authScope.launch {
-                                        try {
-                                            user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
-                                            biometricUnlocked = true
-                                        } catch (_: Exception) {
-                                            passwordError = "Password verification failed. Check your password and try again."
-                                        } finally {
-                                            passwordLoading = false
-                                        }
-                                    }
-                                }
-                            },
-                            passwordError = passwordError,
-                            passwordLoading = passwordLoading,
-                            message = if (availability == BiometricAvailability.Available) {
-                                "Use your device biometrics to continue, or verify your account password."
-                            } else {
-                                "Strong biometrics are currently unavailable. Verify your account password to continue."
-                            }
-                        )
-                    } else {
-                        WhatIfNavGraph()
-=======
+            val hasFirebaseSession = FirebaseAuth.getInstance().currentUser != null
+            val lockState by appLockViewModel.uiState.collectAsStateWithLifecycle()
+
+            LaunchedEffect(preferences, hasFirebaseSession) {
+                val pref = preferences
+                if (pref != null) {
+                    appLockViewModel.decideLockAtLaunch(pref.biometricEnabled, hasFirebaseSession)
+                }
+            }
+
             CompositionLocalProvider(LocalBiometricPrompter provides biometricPrompter) {
                 WhatIfPortfolioTheme(darkTheme = preferences?.useDarkTheme ?: false) {
                     Surface(modifier = Modifier.fillMaxSize()) {
@@ -151,12 +97,8 @@ class MainActivity : FragmentActivity() {
                                 onSignOut = appLockViewModel::signOut
                             )
                         } else {
-                            WhatIfNavGraph(
-                                pendingSimulationId = pendingSimulationId,
-                                onPendingSimulationConsumed = { pendingSimulationId = null }
-                            )
+                            WhatIfNavGraph()
                         }
->>>>>>> Stashed changes
                     }
                 }
             }
