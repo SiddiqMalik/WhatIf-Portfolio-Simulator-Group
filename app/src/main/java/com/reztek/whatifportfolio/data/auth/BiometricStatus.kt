@@ -1,83 +1,72 @@
+
 package com.reztek.whatifportfolio.data.auth
 
 import android.content.Context
-import android.util.Log
 import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
-
 
 /**
- * Outcome of a device biometric-availability check. A sealed hierarchy so
- * callers must handle every known case explicitly, same pattern as
- * [com.reztek.whatifportfolio.ui.auth.SignInUiState].
+ * Describes whether biometric authentication can be used on this device.
+ *
+ * Use checkAvailability() before displaying or launching a biometric prompt.
  */
-sealed interface BiometricAvailability {
-    /** Biometric hardware is present, enrolled, and class-3/strong capable. */
-    data object Available : BiometricAvailability
-
-    /** Hardware exists but the user has no biometrics enrolled yet. */
-    data object NoneEnrolled : BiometricAvailability
-
-    /** Hardware exists but is temporarily unavailable (e.g. in use, updating). */
-    data object HardwareUnavailable : BiometricAvailability
-
-    /** Device has no biometric hardware at all. */
-    data object NoHardware : BiometricAvailability
-
-    /** A security vulnerability was found; the OS requires an update first. */
-    data object SecurityUpdateRequired : BiometricAvailability
-
-    /** Any status code not explicitly mapped above. */
-    data class Unknown(val code: Int) : BiometricAvailability
+sealed class BiometricAvailability {
+    data object Available : BiometricAvailability()
+    data object NoneEnrolled : BiometricAvailability()
+    data object NoHardware : BiometricAvailability()
+    data object HardwareUnavailable : BiometricAvailability()
+    data object SecurityUpdateRequired : BiometricAvailability()
+    data class Unknown(val reason: String? = null) : BiometricAvailability()
 }
 
 /**
- * Checks whether strong (class 3) biometric authentication is usable on this
- * device right now. Used by Settings to decide whether to offer the
- * biometric lock toggle, and by the lock screen to decide whether to show
- * the biometric prompt or fall back to a password.
+ * Checks biometric availability using AndroidX BiometricManager.
  *
- * The status-mapping logic ([mapResultCode]) is a pure function kept
- * separate from the [Context]/[BiometricManager] lookup, so it can be unit
- * tested on the JVM without mocking Android framework classes.
+ * Class 3 biometrics (strong fingerprint/face authentication) are preferred.
+ * If the device does not support Class 3, Class 2 biometrics are checked as
+ * a fallback.
  */
 object BiometricStatus {
 
-    private const val TAG = "BiometricStatus"
-
-    /** Queries the platform BiometricManager for the current device/user state. */
     fun checkAvailability(context: Context): BiometricAvailability {
-        val resultCode = BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG)
-        val availability = mapResultCode(resultCode)
-        logResult(resultCode, availability)
-        return availability
-    }
+        val biometricManager = BiometricManager.from(context)
 
-    /** Maps a raw [BiometricManager.canAuthenticate] result code to [BiometricAvailability]. */
-    fun mapResultCode(resultCode: Int): BiometricAvailability = when (resultCode) {
-        BiometricManager.BIOMETRIC_SUCCESS ->
-            BiometricAvailability.Available
-        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
-            BiometricAvailability.NoneEnrolled
-        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
-            BiometricAvailability.HardwareUnavailable
-        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
-            BiometricAvailability.NoHardware
-        BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED ->
-            BiometricAvailability.SecurityUpdateRequired
-        else ->
-            BiometricAvailability.Unknown(resultCode)
-    }
+        val strongResult = biometricManager.canAuthenticate(
+            BiometricManager.Authenticators.BIOMETRIC_STRONG
+        )
 
-    // Logs the outcome only - never log anything about the enrolled biometric itself.
-    private fun logResult(resultCode: Int, availability: BiometricAvailability) {
-        when (availability) {
-            is BiometricAvailability.Available ->
-                Log.i(TAG, "Biometric authentication available (code=$resultCode)")
-            is BiometricAvailability.Unknown ->
-                Log.w(TAG, "Unrecognised biometric status code=$resultCode")
+        if (strongResult == BiometricManager.BIOMETRIC_SUCCESS) {
+            return BiometricAvailability.Available
+        }
+
+        val weakResult = biometricManager.canAuthenticate(
+            BiometricManager.Authenticators.BIOMETRIC_WEAK
+        )
+
+        return when (weakResult) {
+            BiometricManager.BIOMETRIC_SUCCESS ->
+                BiometricAvailability.Available
+
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
+                BiometricAvailability.NoneEnrolled
+
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
+                BiometricAvailability.NoHardware
+
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
+                BiometricAvailability.HardwareUnavailable
+
+            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED ->
+                BiometricAvailability.SecurityUpdateRequired
+
+            BiometricManager.BIOMETRIC_STATUS_UNKNOWN ->
+                BiometricAvailability.Unknown(
+                    "Biometric availability could not be determined."
+                )
+
             else ->
-                Log.i(TAG, "Biometric authentication unavailable: $availability (code=$resultCode)")
+                BiometricAvailability.Unknown(
+                    "BiometricManager returned status code: $weakResult"
+                )
         }
     }
 }
