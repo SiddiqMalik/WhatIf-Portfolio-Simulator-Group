@@ -1,6 +1,7 @@
 package com.reztek.whatifportfolio.data.auth
 
 import android.content.Context
+import android.util.Log
 import androidx.biometric.BiometricManager
 
 /**
@@ -13,32 +14,29 @@ sealed class BiometricAvailability {
     data object NoHardware : BiometricAvailability()
     data object HardwareUnavailable : BiometricAvailability()
     data object SecurityUpdateRequired : BiometricAvailability()
-    data class Unknown(val reason: String? = null) : BiometricAvailability()
+
+    data class Unknown(val reason: String?) : BiometricAvailability()
 }
 
 /**
  * Checks biometric availability using AndroidX BiometricManager.
  * Class 3 biometrics (strong fingerprint/face authentication) are preferred.
- * If the device does not support Class 3, Class 2 biometrics are checked as a fallback.
  */
 object BiometricStatus {
 
+    private const val TAG = "BiometricStatus"
+
+    const val REQUIRED_AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_STRONG
+
     fun checkAvailability(context: Context): BiometricAvailability {
         val biometricManager = BiometricManager.from(context)
+        return checkAvailabilityWith { authenticators -> biometricManager.canAuthenticate(authenticators) }
+    }
 
-        val strongResult = biometricManager.canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG
-        )
-
-        if (strongResult == BiometricManager.BIOMETRIC_SUCCESS) {
-            return BiometricAvailability.Available
-        }
-
-        val weakResult = biometricManager.canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_WEAK
-        )
-
-        return mapResultCode(weakResult)
+    fun checkAvailabilityWith(canAuthenticate: (Int) -> Int): BiometricAvailability {
+        val result = mapResultCode(canAuthenticate(REQUIRED_AUTHENTICATORS))
+        Log.i(TAG, "Biometric availability: $result")
+        return result
     }
 
     /**
@@ -60,11 +58,6 @@ object BiometricStatus {
 
             BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED ->
                 BiometricAvailability.SecurityUpdateRequired
-
-            BiometricManager.BIOMETRIC_STATUS_UNKNOWN ->
-                BiometricAvailability.Unknown(
-                    "Biometric availability could not be determined."
-                )
 
             else ->
                 BiometricAvailability.Unknown(
