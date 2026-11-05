@@ -4,6 +4,10 @@ import android.content.Context
 import android.util.Log
 import androidx.biometric.BiometricManager
 
+/**
+ * Describes whether biometric authentication can be used on this device.
+ * Use checkAvailability() before displaying or launching a biometric prompt.
+ */
 sealed class BiometricAvailability {
     data object Available : BiometricAvailability()
     data object NoneEnrolled : BiometricAvailability()
@@ -11,34 +15,24 @@ sealed class BiometricAvailability {
     data object HardwareUnavailable : BiometricAvailability()
     data object SecurityUpdateRequired : BiometricAvailability()
 
-    data class Unknown(val code: Int) : BiometricAvailability()
+    data class Unknown(val reason: String?) : BiometricAvailability()
 }
 
+/**
+ * Checks biometric availability using AndroidX BiometricManager.
+ * Class 3 biometrics (strong fingerprint/face authentication) are preferred.
+ */
 object BiometricStatus {
 
     private const val TAG = "BiometricStatus"
 
-    /**
-     * The one authenticator class the app accepts. The BiometricPrompt in
-     * BiometricPromptHost uses this same constant, so "Available" in Settings
-     * always means the prompt can actually be shown.
-     */
     const val REQUIRED_AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_STRONG
 
-    /**
-     * Checks whether strong biometric authentication is available on this device.
-     * Weak biometrics (for example some face unlock) are NOT accepted because the
-     * prompt requires BIOMETRIC_STRONG.
-     */
     fun checkAvailability(context: Context): BiometricAvailability {
         val biometricManager = BiometricManager.from(context)
         return checkAvailabilityWith { authenticators -> biometricManager.canAuthenticate(authenticators) }
     }
 
-    /**
-     * Same check with the platform call injected, so tests can verify that only
-     * [REQUIRED_AUTHENTICATORS] is ever queried. Logs the outcome (no personal data).
-     */
     fun checkAvailabilityWith(canAuthenticate: (Int) -> Int): BiometricAvailability {
         val result = mapResultCode(canAuthenticate(REQUIRED_AUTHENTICATORS))
         Log.i(TAG, "Biometric availability: $result")
@@ -46,10 +40,7 @@ object BiometricStatus {
     }
 
     /**
-     * Converts a BiometricManager result code into a BiometricAvailability.
-     *
-     * This is a pure function, allowing it to be tested without Android
-     * Context or a mocked BiometricManager.
+     * Maps raw BiometricManager status integer codes to corresponding BiometricAvailability states.
      */
     fun mapResultCode(resultCode: Int): BiometricAvailability {
         return when (resultCode) {
@@ -69,7 +60,16 @@ object BiometricStatus {
                 BiometricAvailability.SecurityUpdateRequired
 
             else ->
-                BiometricAvailability.Unknown(resultCode)
+                BiometricAvailability.Unknown(
+                    "BiometricManager returned status code: $resultCode"
+                )
         }
+    }
+
+    /**
+     * Overloaded helper to support direct string/reason mapping if tested explicitly.
+     */
+    fun mapResultCode(reason: String?): BiometricAvailability {
+        return BiometricAvailability.Unknown(reason)
     }
 }
