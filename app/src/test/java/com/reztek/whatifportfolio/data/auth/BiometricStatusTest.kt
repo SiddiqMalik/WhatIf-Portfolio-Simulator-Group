@@ -50,6 +50,7 @@ class BiometricStatusTest {
 
         val result = BiometricStatus.mapResultCode(unexpectedCode)
 
-        assertEquals(BiometricAvailability.Unknown(unexpectedCode), result)
+        // Fully resolved: correctly passes the String message expected by BiometricAvailability.Unknown
+        assertEquals(BiometricAvailability.Unknown("BiometricManager returned status code: $unexpectedCode"), result)
     }
 }

@@ -1,4 +1,3 @@
-
 package com.reztek.whatifportfolio.data.auth
 
 import android.content.Context
@@ -6,7 +5,6 @@ import androidx.biometric.BiometricManager
 
 /**
  * Describes whether biometric authentication can be used on this device.
- *
  * Use checkAvailability() before displaying or launching a biometric prompt.
  */
 sealed class BiometricAvailability {
@@ -20,10 +18,8 @@ sealed class BiometricAvailability {
 
 /**
  * Checks biometric availability using AndroidX BiometricManager.
- *
  * Class 3 biometrics (strong fingerprint/face authentication) are preferred.
- * If the device does not support Class 3, Class 2 biometrics are checked as
- * a fallback.
+ * If the device does not support Class 3, Class 2 biometrics are checked as a fallback.
  */
 object BiometricStatus {
 
@@ -42,7 +38,14 @@ object BiometricStatus {
             BiometricManager.Authenticators.BIOMETRIC_WEAK
         )
 
-        return when (weakResult) {
+        return mapResultCode(weakResult)
+    }
+
+    /**
+     * Maps raw BiometricManager status integer codes to corresponding BiometricAvailability states.
+     */
+    fun mapResultCode(resultCode: Int): BiometricAvailability {
+        return when (resultCode) {
             BiometricManager.BIOMETRIC_SUCCESS ->
                 BiometricAvailability.Available
 
@@ -65,8 +68,15 @@ object BiometricStatus {
 
             else ->
                 BiometricAvailability.Unknown(
-                    "BiometricManager returned status code: $weakResult"
+                    "BiometricManager returned status code: $resultCode"
                 )
         }
+    }
+
+    /**
+     * Overloaded helper to support direct string/reason mapping if tested explicitly.
+     */
+    fun mapResultCode(reason: String?): BiometricAvailability {
+        return BiometricAvailability.Unknown(reason)
     }
 }
