@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.reztek.whatifportfolio">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- PART3-ASH: detect going offline/online for the offline banner and sync. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- PART3-JORDAN: required to query/use BiometricManager and BiometricPrompt. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".WhatIfApplication"
@@ -14,19 +16,33 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.WhatIfPortfolio">
+        android:theme="@style/Theme.WhatIfPortfolio"
+        tools:targetApi="34">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.WhatIfPortfolio"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- PART3-DAVID: FCM service -->
+        <service
+            android:name=".notifications.WhatIfFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="simulations" />
 
     </application>
 

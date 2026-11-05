@@ -1,5 +1,6 @@
 package com.reztek.whatifportfolio
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -9,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,6 +22,7 @@ import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.preferences.UserPreferences
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
 import com.reztek.whatifportfolio.navigation.WhatIfNavGraph
+import com.reztek.whatifportfolio.notifications.NotificationIntentParser
 import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
 import com.reztek.whatifportfolio.ui.auth.BiometricLockScreen
 import com.reztek.whatifportfolio.ui.auth.rememberBiometricPrompt
@@ -28,17 +32,20 @@ import kotlinx.coroutines.flow.map
 private const val TAG = "MainActivity"
 
 /**
- * Single-Activity host for the whole Compose UI.
+ * Single-Activity host. Handles FCM tap deep-links — PART3-DAVID.
  */
 class MainActivity : FragmentActivity() {
 
     // Survives rotation (so no re-lock) but not process death (so a restored app re-locks).
     private val appLockViewModel: AppLockViewModel by viewModels()
 
+    private var pendingSimulationId by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i(TAG, "onCreate")
         enableEdgeToEdge()
+        pendingSimulationId = NotificationIntentParser.simulationIdFromIntent(intent)
 
         val preferencesRepository = UserPreferencesRepository(applicationContext)
 
@@ -91,11 +98,21 @@ class MainActivity : FragmentActivity() {
                             onShowPasswordFallbackChange = appLockViewModel::onShowPasswordFallbackChange
                         )
                     } else {
-                        WhatIfNavGraph()
+                        WhatIfNavGraph(
+                            pendingSimulationId = pendingSimulationId,
+                            onPendingSimulationConsumed = { pendingSimulationId = null }
+                        )
                     }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingSimulationId = NotificationIntentParser.simulationIdFromIntent(intent)
+        Log.i(TAG, "onNewIntent simulationId=$pendingSimulationId")
     }
 
     override fun onStart() {

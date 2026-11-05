@@ -38,11 +38,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
 import com.reztek.whatifportfolio.ui.components.EmptyState
+import com.reztek.whatifportfolio.ui.components.InlineErrorBanner
+import com.reztek.whatifportfolio.ui.components.PrimaryActionButton
 import com.reztek.whatifportfolio.ui.components.StatusChip
 import com.reztek.whatifportfolio.ui.components.WhatIfBottomNavBar
 import com.reztek.whatifportfolio.ui.theme.BackgroundLight
@@ -82,8 +86,18 @@ fun DashboardScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                text = { Text("New Simulation", fontWeight = FontWeight.SemiBold) },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = {
+                    Text(
+                        stringResource(R.string.dashboard_new_simulation),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                icon = {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.cd_add)
+                    )
+                },
                 onClick = {
                     Log.i(TAG, "New Simulation FAB tapped")
                     onNewSimulation()
@@ -103,13 +117,21 @@ fun DashboardScreen(
                     com.reztek.whatifportfolio.ui.components.SkeletonRow()
                 }
             }
-            is DashboardUiState.Error -> Box(
+            // PART3-DAVID: consistent error + retry
+            is DashboardUiState.Error -> Column(
                 modifier = Modifier
                     .padding(padding)
+                    .padding(20.dp)
                     .fillMaxSize(),
-                contentAlignment = Alignment.Center
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(state.message, color = MaterialTheme.colorScheme.error)
+                InlineErrorBanner(state.message.ifBlank {
+                    stringResource(R.string.dashboard_error_generic)
+                })
+                PrimaryActionButton(
+                    text = stringResource(R.string.dashboard_retry),
+                    onClick = { viewModel.loadDashboard() }
+                )
             }
 
             is DashboardUiState.Loaded -> DashboardContent(

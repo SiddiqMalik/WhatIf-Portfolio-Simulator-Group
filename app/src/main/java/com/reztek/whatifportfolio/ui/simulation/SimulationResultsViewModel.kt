@@ -16,8 +16,11 @@ enum class ChartWindow { ONE_YEAR, FIVE_YEARS, MAX }
 
 sealed interface SimulationDetailUiState {
     data object Loading : SimulationDetailUiState
-    data class Ready(val simulation: SimulationDto, val window: ChartWindow = ChartWindow.MAX) :
-        SimulationDetailUiState
+    data class Ready(
+        val simulation: SimulationDto,
+        val window: ChartWindow = ChartWindow.MAX,
+        val fromCache: Boolean = false
+    ) : SimulationDetailUiState
     data class Error(val message: String) : SimulationDetailUiState
 }
 
@@ -38,8 +41,8 @@ class SimulationResultsViewModel(
         viewModelScope.launch {
             _uiState.value = SimulationDetailUiState.Loading
             try {
-                val sim = repository.getSimulation(simulationId)
-                _uiState.value = SimulationDetailUiState.Ready(sim)
+                val lookup = repository.getSimulationWithSource(simulationId)
+                _uiState.value = SimulationDetailUiState.Ready(lookup.simulation, fromCache = lookup.fromCache)
             } catch (e: Exception) {
                 _uiState.value = SimulationDetailUiState.Error(
                     e.localizedMessage ?: "Couldn't load simulation results."
@@ -116,7 +119,8 @@ class SimulationDetailViewModel(
         viewModelScope.launch {
             _uiState.value = SimulationDetailUiState.Loading
             try {
-                _uiState.value = SimulationDetailUiState.Ready(repository.getSimulation(simulationId))
+                val lookup = repository.getSimulationWithSource(simulationId)
+                _uiState.value = SimulationDetailUiState.Ready(lookup.simulation, fromCache = lookup.fromCache)
             } catch (e: Exception) {
                 _uiState.value = SimulationDetailUiState.Error(
                     e.localizedMessage ?: "Couldn't load this simulation."

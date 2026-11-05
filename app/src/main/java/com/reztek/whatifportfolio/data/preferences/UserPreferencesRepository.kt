@@ -11,42 +11,24 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
-// Top-level DataStore delegate, scoped to the app Context.
-// Reference: Jetpack Preferences DataStore guide
-// (https://developer.android.com/topic/libraries/architecture/datastore) —
-// chosen over SharedPreferences because it is asynchronous (Flow-based,
-// never blocks the UI thread) and type-safe.
 private val Context.dataStore by preferencesDataStore(name = "user_preferences")
 
-/**
- * Local-first persistence for user preferences (Person 1 scope: "local UI
- * state holders and basic user preferences persistence").
- *
- * This repository intentionally does NOT talk to Firestore directly — the
- * Settings ViewModel decides whether a given preference also needs to sync
- * to the user's Firestore profile (e.g. display currency does, per
- * Deliverable 3; dark-mode is device-local only). Keeping DataStore as the
- * single local source of truth means Settings still works correctly offline.
- */
 class UserPreferencesRepository(private val context: Context) {
 
     private object Keys {
         val DISPLAY_CURRENCY = stringPreferencesKey("display_currency")
         val USE_DARK_THEME = booleanPreferencesKey("use_dark_theme")
-
-        // PART3-JORDAN: biometric lock preference (Part 3).
         val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
+        val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val APP_LOCALE = stringPreferencesKey("app_locale")
     }
 
     companion object {
         private const val TAG = "UserPreferencesRepo"
     }
 
-    /** Reactive stream of the current preferences; emits a new value on every change. */
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data
         .catch { exception ->
-            // DataStore throws IOException on read failure; degrade to defaults
-            // rather than crashing the Settings screen.
             if (exception is IOException) {
                 Log.e(TAG, "Error reading preferences, falling back to defaults", exception)
                 emit(androidx.datastore.preferences.core.emptyPreferences())
@@ -58,8 +40,9 @@ class UserPreferencesRepository(private val context: Context) {
             UserPreferences(
                 displayCurrency = prefs[Keys.DISPLAY_CURRENCY] ?: "ZAR",
                 useDarkTheme = prefs[Keys.USE_DARK_THEME] ?: false,
-                // PART3-JORDAN: defaults to false when never set, same pattern as the above.
-                biometricEnabled = prefs[Keys.BIOMETRIC_ENABLED] ?: false
+                biometricEnabled = prefs[Keys.BIOMETRIC_ENABLED] ?: false,
+                notificationsEnabled = prefs[Keys.NOTIFICATIONS_ENABLED] ?: true,
+                appLocale = prefs[Keys.APP_LOCALE] ?: ""
             )
         }
 
@@ -73,9 +56,18 @@ class UserPreferencesRepository(private val context: Context) {
         context.dataStore.edit { prefs -> prefs[Keys.USE_DARK_THEME] = enabled }
     }
 
-    // PART3-JORDAN: persists the biometric lock preference (Part 3, Commit 2).
     suspend fun setBiometricEnabled(enabled: Boolean) {
         Log.d(TAG, "Persisting biometric lock preference: $enabled")
         context.dataStore.edit { prefs -> prefs[Keys.BIOMETRIC_ENABLED] = enabled }
+    }
+
+    suspend fun setNotificationsEnabled(enabled: Boolean) {
+        Log.d(TAG, "Persisting notifications preference: $enabled")
+        context.dataStore.edit { prefs -> prefs[Keys.NOTIFICATIONS_ENABLED] = enabled }
+    }
+
+    suspend fun setAppLocale(tag: String) {
+        Log.d(TAG, "Persisting app locale preference: '$tag'")
+        context.dataStore.edit { prefs -> prefs[Keys.APP_LOCALE] = tag }
     }
 }

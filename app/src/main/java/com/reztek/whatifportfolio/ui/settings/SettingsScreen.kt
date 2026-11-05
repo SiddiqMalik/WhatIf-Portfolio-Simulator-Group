@@ -1,6 +1,11 @@
 package com.reztek.whatifportfolio.ui.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,7 +33,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -48,17 +52,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.data.auth.BiometricStatus
+import com.reztek.whatifportfolio.data.preferences.LocaleHelper
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_CURRENCIES
+import com.reztek.whatifportfolio.data.preferences.SUPPORTED_LOCALES
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
 import com.reztek.whatifportfolio.ui.components.WhatIfBottomNavBar
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
@@ -67,12 +76,7 @@ import com.reztek.whatifportfolio.ui.theme.TealPrimary
 private const val TAG = "SettingsScreen"
 
 /**
- * Settings / "Account & Preferences" screen (Deliverable 3, Screen 8).
- *
- * Notifications are shown but disabled with a "(soon)" label until FCM is
- * implemented (Final POE scope). Language is informational only — English
- * is the only supported language in this build; at least two South African
- * languages are Final POE scope per the requirements specification.
+ * Settings screen — PART3-DAVID enables push notifications and language.
  */
 @Composable
 fun SettingsScreen(
@@ -86,8 +90,6 @@ fun SettingsScreen(
     )
     val uiState by viewModel.uiState.collectAsState()
 
-    // PART3-JORDAN: re-check biometric availability whenever the screen resumes,
-    // so enrolling a fingerprint in system settings is picked up on return.
     val lifecycleOwner = LocalLifecycleOwner.current
     var biometricAvailability by remember { mutableStateOf(BiometricStatus.checkAvailability(context)) }
     DisposableEffect(lifecycleOwner) {
@@ -101,11 +103,24 @@ fun SettingsScreen(
     }
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
+    var showLanguagePicker by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        Log.i(TAG, "POST_NOTIFICATIONS granted=$granted")
+        viewModel.onNotificationsToggled(granted)
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.SemiBold) },
+                title = {
+                    Text(
+                        stringResource(R.string.settings_title),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -130,21 +145,21 @@ fun SettingsScreen(
             item { AccountHeader(name = uiState.accountDisplayName, email = uiState.accountEmail) }
 
             item {
-                SettingsSection(title = "Preferences") {
+                SettingsSection(title = stringResource(R.string.settings_preferences)) {
                     SettingsRow(
                         icon = Icons.Filled.Payments,
-                        title = "Display currency",
+                        title = stringResource(R.string.settings_display_currency),
                         trailingText = uiState.preferences.displayCurrency,
                         onClick = { showCurrencyPicker = true }
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SettingsToggleRow(
                         icon = Icons.Filled.DarkMode,
-                        title = "Dark theme",
+                        title = stringResource(R.string.settings_dark_theme),
                         checked = uiState.preferences.useDarkTheme,
                         onCheckedChange = viewModel::onDarkThemeToggled
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SettingsToggleRow(
                         icon = Icons.Filled.Fingerprint,
                         title = "Biometric app lock",
@@ -163,21 +178,31 @@ fun SettingsScreen(
             }
 
             item {
-                SettingsSection(title = "Notifications & language") {
-                    SettingsRow(
+                SettingsSection(title = stringResource(R.string.settings_notifications_language)) {
+                    SettingsToggleRow(
                         icon = Icons.Filled.Notifications,
-                        title = "Push notifications",
-                        trailingText = "Soon",
-                        enabled = false,
-                        onClick = {}
+                        title = stringResource(R.string.settings_push_notifications),
+                        checked = uiState.preferences.notificationsEnabled,
+                        onCheckedChange = { enabled ->
+                            if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                val granted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (!granted) {
+                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    return@SettingsToggleRow
+                                }
+                            }
+                            viewModel.onNotificationsToggled(enabled)
+                        }
                     )
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SettingsRow(
                         icon = Icons.Filled.Language,
-                        title = "Language",
-                        trailingText = "English",
-                        enabled = false,
-                        onClick = {}
+                        title = stringResource(R.string.settings_language),
+                        trailingText = LocaleHelper.displayNameFor(uiState.preferences.appLocale),
+                        onClick = { showLanguagePicker = true }
                     )
                 }
             }
@@ -187,9 +212,13 @@ fun SettingsScreen(
                     onClick = { showLogoutConfirm = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Filled.Logout, contentDescription = null, tint = ErrorRed)
+                    Icon(
+                        Icons.Filled.Logout,
+                        contentDescription = stringResource(R.string.settings_log_out),
+                        tint = ErrorRed
+                    )
                     Text(
-                        "Log out",
+                        stringResource(R.string.settings_log_out),
                         color = ErrorRed,
                         modifier = Modifier.padding(start = 8.dp),
                         fontWeight = FontWeight.Medium
@@ -210,20 +239,35 @@ fun SettingsScreen(
         )
     }
 
+    if (showLanguagePicker) {
+        LanguagePickerDialog(
+            selected = uiState.preferences.appLocale,
+            onSelect = {
+                viewModel.onLocaleSelected(it)
+                showLanguagePicker = false
+            },
+            onDismiss = { showLanguagePicker = false }
+        )
+    }
+
     if (showLogoutConfirm) {
         AlertDialog(
             onDismissRequest = { showLogoutConfirm = false },
-            title = { Text("Log out?") },
-            text = { Text("You'll need to sign in again to access your simulations.") },
+            title = { Text(stringResource(R.string.settings_log_out_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_log_out_confirm_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     Log.i(TAG, "Logout confirmed")
                     showLogoutConfirm = false
                     viewModel.onLogOutClicked(onLoggedOut)
-                }) { Text("Log out", color = ErrorRed) }
+                }) {
+                    Text(stringResource(R.string.settings_log_out), color = ErrorRed)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showLogoutConfirm = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
             }
         )
     }
@@ -238,7 +282,11 @@ private fun AccountHeader(name: String, email: String) {
                 .background(TealPrimary.copy(alpha = 0.15f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Person, contentDescription = null, tint = TealPrimary)
+            Icon(
+                Icons.Filled.Person,
+                contentDescription = stringResource(R.string.settings_title),
+                tint = TealPrimary
+            )
         }
         Column(modifier = Modifier.padding(start = 14.dp)) {
             Text(
@@ -291,7 +339,7 @@ private fun SettingsRow(
     ) {
         Icon(
             icon,
-            contentDescription = null,
+            contentDescription = title,
             tint = if (enabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
         )
@@ -336,7 +384,11 @@ private fun SettingsToggleRow(
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+        Icon(
+            icon,
+            contentDescription = title,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
         Column(modifier = Modifier.weight(1f).padding(start = 14.dp, end = 8.dp)) {
             Text(title)
             if (subtitle != null) {
@@ -364,7 +416,7 @@ private fun CurrencyPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Display currency") },
+        title = { Text(stringResource(R.string.settings_display_currency)) },
         text = {
             Column {
                 SUPPORTED_CURRENCIES.forEach { code ->
@@ -378,7 +430,7 @@ private fun CurrencyPickerDialog(
                         Text(code, modifier = Modifier.weight(1f))
                         if (code == selected) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Filled.ChevronRight,
+                                imageVector = Icons.Filled.ChevronRight,
                                 contentDescription = null,
                                 tint = TealPrimary
                             )
@@ -388,7 +440,49 @@ private fun CurrencyPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
+    )
+}
+
+@Composable
+private fun LanguagePickerDialog(
+    selected: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.language_picker_title)) },
+        text = {
+            Column {
+                SUPPORTED_LOCALES.forEach { option ->
+                    val label = when (option.tag) {
+                        "af" -> stringResource(R.string.language_afrikaans)
+                        "xh" -> stringResource(R.string.language_isixhosa)
+                        else -> stringResource(R.string.language_english)
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(option.tag) }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(label, modifier = Modifier.weight(1f))
+                        if (option.tag == selected) {
+                            Icon(
+                                imageVector = Icons.Filled.ChevronRight,
+                                contentDescription = null,
+                                tint = TealPrimary
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     )
 }
