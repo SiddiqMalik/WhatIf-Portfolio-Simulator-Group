@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.ui.theme.NavyDeep
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
 
@@ -140,7 +142,7 @@ fun SignInScreen(
                     email = it
                     if (uiState is SignInUiState.Error) viewModel.consumeError()
                 },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email_label)) },
                 singleLine = true,
                 enabled = !isLoading,
                 keyboardOptions = KeyboardOptions(
@@ -159,7 +161,7 @@ fun SignInScreen(
                     password = it
                     if (uiState is SignInUiState.Error) viewModel.consumeError()
                 },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password_label)) },
                 singleLine = true,
                 enabled = !isLoading,
                 visualTransformation = if (passwordVisible) {
@@ -224,7 +226,7 @@ fun SignInScreen(
                     )
                 } else {
                     Text(
-                        text = "Sign in",
+                        text = stringResource(R.string.action_sign_in),
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -247,7 +249,7 @@ fun SignInScreen(
                     .height(52.dp)
             ) {
                 Text(
-                    text = "Create account",
+                    text = stringResource(R.string.action_create_account),
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.titleMedium
                 )
