@@ -97,6 +97,9 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
+    // PART3-ASH: background sync of offline changes (offline mode with sync)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
     // Room Database Dependencies
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")

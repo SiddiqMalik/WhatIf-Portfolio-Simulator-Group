@@ -5,6 +5,8 @@ import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.reztek.whatifportfolio.data.preferences.LocaleHelper
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
+import com.reztek.whatifportfolio.data.sync.OfflineDataCache
+import com.reztek.whatifportfolio.data.sync.SyncScheduler
 import com.reztek.whatifportfolio.notifications.ensureSimulationNotificationChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +29,11 @@ class WhatIfApplication : Application() {
         Log.i(TAG, "Application onCreate")
         FirebaseApp.initializeApp(this)
         ensureSimulationNotificationChannel(this)
+
+        // PART3-ASH: push any changes queued while offline (runs only once a network is available).
+        SyncScheduler.enqueue(this)
+        // PART3-ASH: local copies of simulation results and asset searches for offline use.
+        OfflineDataCache.init(this)
 
         appScope.launch {
             runCatching {
