@@ -78,3 +78,8 @@ echo "$KEYSTORE_BASE64" | base64 --decode > app/release-keystore.jks
 ```
 
 > **Security note:** Never commit the `.jks` keystore file or any passwords to the repository. Store them only as GitHub repository secrets (Settings → Secrets and variables → Actions) and keep a secure offline backup of the keystore, since losing it prevents future updates to the published app.
+
+### Continuous Integration & Release Verification
+![GitHub Actions Build Passing](docs/screenshots/github-actions-passing.png)
+![Signed Release APK Location](docs/screenshots/release-apk-folder.png)
+![Gradle Build Output](docs/screenshots/build-successful-output.png)
