@@ -1,0 +1,204 @@
+package com.reztek.whatifportfolio.ui.simulation
+
+import com.reztek.whatifportfolio.MainDispatcherRule
+import com.reztek.whatifportfolio.data.local.SavedSimulationEntity
+import com.reztek.whatifportfolio.data.local.SimulationRepository
+import com.reztek.whatifportfolio.data.remote.dto.SimulationDto
+import com.reztek.whatifportfolio.data.repository.RemoteSimulationRepository
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
+import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
+import java.io.IOException
+
+// The ViewModel loads in init, so mocks are configured before it is constructed.
+class CompareViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private lateinit var local: SimulationRepository
+    private lateinit var remote: RemoteSimulationRepository
+
+    @Before
+    fun setUp() {
+        local = mockk()
+        remote = mockk()
+    }
+
+    private fun entity(id: Long, title: String = "Local $id") = SavedSimulationEntity(
+        id = id,
+        title = title,
+        initialInvestment = 1000.0,
+        monthlyContribution = 100.0,
+        returnRate = 8.0,
+        inflationRate = 4.0,
+        years = 2,
+        finalNominalValue = 3800.0,
+        finalRealValue = 3500.0,
+        createdAt = 0L
+    )
+
+    private fun dto(id: String, name: String = "Remote $id") = SimulationDto(
+        id = id,
+        name = name,
+        startDate = "2026-01-01",
+        endDate = "2030-01-01",
+        initialInvestment = 1000.0,
+        recurringContribution = 100.0,
+        status = "completed",
+        totalContributed = 5800.0,
+        finalValue = 7200.0,
+        profitLoss = 1400.0,
+        percentReturn = 24.14,
+        createdAt = "2026-01-01T00:00:00Z",
+        updatedAt = "2026-01-01T00:00:00Z"
+    )
+
+    private fun httpException(code: Int) =
+        HttpException(Response.error<Any>(code, "".toResponseBody()))
+
+    private fun viewModel(first: String, second: String) =
+        CompareViewModel(first, second, local, remote)
+
+    @Test
+    fun localAndRemote_loadToReady() {
+        coEvery { local.getSimulationById(7L) } returns entity(7L)
+        coEvery { remote.getSimulation("abc") } returns dto("abc")
+
+        val state = viewModel("local-7", "remote-abc").uiState.value
+
+        assertTrue(state is CompareUiState.Ready)
+        state as CompareUiState.Ready
+        assertEquals("local-7", state.first.id)
+        assertEquals("remote-abc", state.second.id)
+    }
+
+    @Test
+    fun localAndRemoteWithTheSameNumber_areTreatedAsDifferentSimulations() {
+        coEvery { local.getSimulationById(7L) } returns entity(7L)
+        coEvery { remote.getSimulation("7") } returns dto("7")
+
+        val state = viewModel("local-7", "remote-7").uiState.value
+
+        assertTrue(state is CompareUiState.Ready)
+    }
+
+    @Test
+    fun startsInLoading_untilTheServerAnswers() {
+        val gate = CompletableDeferred<SimulationDto>()
+        coEvery { local.getSimulationById(1L) } returns entity(1L)
+        coEvery { remote.getSimulation("a") } coAnswers { gate.await() }
+
+        val vm = viewModel("local-1", "remote-a")
+        assertEquals(CompareUiState.Loading, vm.uiState.value)
+
+        gate.complete(dto("a"))
+        assertTrue(vm.uiState.value is CompareUiState.Ready)
+    }
+
+    @Test
+    fun sameKeyTwice_isRejected_withoutTouchingRepositories() {
+        val vm = viewModel("local-3", "local-3")
+
+        assertEquals(
+            CompareUiState.Error(CompareViewModel.MESSAGE_SAME_SIMULATION, canRetry = false),
+            vm.uiState.value
+        )
+        coVerify(exactly = 0) { local.getSimulationById(any()) }
+        coVerify(exactly = 0) { remote.getSimulation(any()) }
+    }
+
+    @Test
+    fun differentSpellingsOfTheSameLocalId_areRejectedAsDuplicates() {
+        val vm = viewModel("local-3", "local-003")
+
+        assertEquals(
+            CompareUiState.Error(CompareViewModel.MESSAGE_SAME_SIMULATION, canRetry = false),
+            vm.uiState.value
+        )
+    }
+
+    @Test
+    fun malformedKey_isRejected_withoutRetry() {
+        val vm = viewModel("bogus", "remote-a")
+
+        assertEquals(
+            CompareUiState.Error(CompareViewModel.MESSAGE_INVALID_KEY, canRetry = false),
+            vm.uiState.value
+        )
+        coVerify(exactly = 0) { remote.getSimulation(any()) }
+    }
+
+    @Test
+    fun deletedLocalSimulation_showsMissingError_withoutRetry() {
+        coEvery { local.getSimulationById(9L) } returns null
+        coEvery { remote.getSimulation("a") } returns dto("a")
+
+        val vm = viewModel("local-9", "remote-a")
+
+        assertEquals(
+            CompareUiState.Error(CompareViewModel.MESSAGE_MISSING, canRetry = false),
+            vm.uiState.value
+        )
+    }
+
+    @Test
+    fun remoteNotFound_showsMissingError_withoutRetry() {
+        coEvery { local.getSimulationById(1L) } returns entity(1L)
+        coEvery { remote.getSimulation("gone") } throws httpException(404)
+
+        val vm = viewModel("local-1", "remote-gone")
+
+        assertEquals(
+            CompareUiState.Error(CompareViewModel.MESSAGE_MISSING, canRetry = false),
+            vm.uiState.value
+        )
+    }
+
+    @Test
+    fun remoteServerError_isRetryable() {
+        coEvery { local.getSimulationById(1L) } returns entity(1L)
+        coEvery { remote.getSimulation("a") } throws httpException(500)
+
+        val vm = viewModel("local-1", "remote-a")
+
+        assertEquals(
+            CompareUiState.Error(CompareViewModel.MESSAGE_SERVER, canRetry = true),
+            vm.uiState.value
+        )
+    }
+
+    @Test
+    fun networkFailure_isRetryable_andRetrySucceedsOnceBackOnline() {
+        coEvery { local.getSimulationById(1L) } returns entity(1L)
+        coEvery { remote.getSimulation("a") } throws IOException("offline") andThen dto("a")
+
+        val vm = viewModel("local-1", "remote-a")
+        val error = vm.uiState.value
+        assertTrue(error is CompareUiState.Error)
+        assertEquals(CompareViewModel.MESSAGE_OFFLINE, (error as CompareUiState.Error).message)
+        assertTrue(error.canRetry)
+
+        vm.retry()
+
+        assertTrue(vm.uiState.value is CompareUiState.Ready)
+    }
+
+    @Test
+    fun invalidSelection_cannotBeRetried() {
+        val vm = viewModel("local-3", "local-3")
+
+        val state = vm.uiState.value as CompareUiState.Error
+        assertFalse(state.canRetry)
+    }
+}

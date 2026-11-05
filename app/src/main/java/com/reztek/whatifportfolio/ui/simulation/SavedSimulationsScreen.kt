@@ -23,6 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
@@ -182,6 +183,7 @@ class SavedSimulationsViewModel(
 fun SavedSimulationsScreen(
     onOpenSimulation: (String) -> Unit,
     onRerun: (String) -> Unit,
+    onCompare: () -> Unit,
     onBottomNavSelected: (BottomNavDestination) -> Unit,
     viewModel: SavedSimulationsViewModel = viewModel()
 ) {
@@ -203,11 +205,19 @@ fun SavedSimulationsScreen(
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(Modifier.height(20.dp))
-            Text(
-                "Saved simulations",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Saved simulations",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                // Entry point to the Compare feature (pick two saved runs).
+                OutlinedButton(onClick = onCompare) { Text("Compare") }
+            }
             Text(
                 "Cloud historical runs and on-device future projections.",
                 style = MaterialTheme.typography.bodyMedium,

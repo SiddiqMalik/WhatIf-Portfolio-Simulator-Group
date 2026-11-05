@@ -83,6 +83,8 @@ dependencies {
 
     // PART3-JORDAN: biometric authentication (fingerprint/face unlock)
     implementation("androidx.biometric:biometric:1.1.0")
+    // Declared explicitly: MainActivity extends FragmentActivity, which BiometricPrompt requires.
+    implementation("androidx.fragment:fragment:1.8.3")
 
     // Networking: connects to the custom REST API (whatif-api.vercel.app)
     implementation("com.squareup.retrofit2:retrofit:2.11.0")

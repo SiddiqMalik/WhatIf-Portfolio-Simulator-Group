@@ -13,6 +13,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.reztek.whatifportfolio.ui.auth.SignInScreen
 import com.reztek.whatifportfolio.ui.dashboard.DashboardScreen
 import com.reztek.whatifportfolio.ui.settings.SettingsScreen
+import com.reztek.whatifportfolio.ui.simulation.CompareRoute
+import com.reztek.whatifportfolio.ui.simulation.CompareSelectionRoute
 import com.reztek.whatifportfolio.ui.simulation.SavedSimulationsScreen
 import com.reztek.whatifportfolio.ui.simulation.SimulationBuilderScreen
 import com.reztek.whatifportfolio.ui.simulation.SimulationDetailScreen
@@ -72,6 +74,10 @@ fun WhatIfNavGraph(
                 },
                 onRerun = { id ->
                     navController.navigate(Destination.SimulationBuilder.createRoute(id))
+                },
+                onCompare = {
+                    Log.d(TAG, "Navigating SavedSimulations -> CompareSelection")
+                    navController.navigate(Destination.CompareSelection.route)
                 },
                 onBottomNavSelected = { destination ->
                     navController.navigateToBottomDestination(destination)
@@ -143,6 +149,30 @@ fun WhatIfNavGraph(
                         popUpTo(Destination.Dashboard.route)
                     }
                 }
+            )
+        }
+
+        composable(Destination.CompareSelection.route) {
+            CompareSelectionRoute(
+                onCompareSelected = { first, second ->
+                    Log.d(TAG, "Navigating CompareSelection -> CompareSimulation")
+                    navController.navigate(Destination.CompareSimulation.createRoute(first, second))
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Destination.CompareSimulation.route,
+            arguments = listOf(
+                navArgument(Destination.CompareSimulation.ARG_FIRST_ID) { type = NavType.StringType },
+                navArgument(Destination.CompareSimulation.ARG_SECOND_ID) { type = NavType.StringType }
+            )
+        ) { entry ->
+            CompareRoute(
+                firstId = entry.arguments?.getString(Destination.CompareSimulation.ARG_FIRST_ID).orEmpty(),
+                secondId = entry.arguments?.getString(Destination.CompareSimulation.ARG_SECOND_ID).orEmpty(),
+                onBack = { navController.popBackStack() }
             )
         }
 
