@@ -30,7 +30,16 @@ fun BiometricLockScreen(
     onPasswordUnlock: (String) -> Unit,
     message: String? = null,
     passwordError: String? = null,
+<<<<<<< Updated upstream
     passwordLoading: Boolean = false
+=======
+    passwordLoading: Boolean = false,
+    autoPrompt: Boolean = false,
+    biometricAvailable: Boolean = true,
+    showPasswordFallback: Boolean = false,
+    onShowPasswordFallbackChange: (Boolean) -> Unit = {},
+    onSignOut: () -> Unit = {}
+>>>>>>> Stashed changes
 ) {
     var showPasswordFallback by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
@@ -73,6 +82,10 @@ fun BiometricLockScreen(
                     enabled = password.isNotBlank() && !passwordLoading,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(if (passwordLoading) "Verifying…" else "Unlock with password") }
+            }
+            Spacer(Modifier.height(12.dp))
+            TextButton(onClick = onSignOut, enabled = !passwordLoading) {
+                Text("Sign out", color = MaterialTheme.colorScheme.error)
             }
         }
     }

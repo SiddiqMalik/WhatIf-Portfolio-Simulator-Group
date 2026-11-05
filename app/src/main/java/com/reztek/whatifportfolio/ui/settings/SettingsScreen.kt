@@ -41,6 +41,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+<<<<<<< Updated upstream
+=======
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+>>>>>>> Stashed changes
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,12 +58,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_CURRENCIES
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
+import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
+import com.reztek.whatifportfolio.ui.auth.BiometricPurpose
+import com.reztek.whatifportfolio.ui.auth.EnableLockResult
+import com.reztek.whatifportfolio.ui.auth.LocalBiometricPrompter
+import com.reztek.whatifportfolio.ui.auth.findFragmentActivity
 import com.reztek.whatifportfolio.ui.components.WhatIfBottomNavBar
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
 
 private const val TAG = "SettingsScreen"
 
+<<<<<<< Updated upstream
 /**
  * Settings / "Account & Preferences" screen (Deliverable 3, Screen 8).
  *
@@ -67,6 +78,11 @@ private const val TAG = "SettingsScreen"
  * is the only supported language in this build; at least two South African
  * languages are Final POE scope per the requirements specification.
  */
+=======
+private const val BIOMETRIC_ENABLE_NOT_CONFIRMED_MESSAGE =
+    "Biometric lock was not turned on because your identity was not confirmed."
+
+>>>>>>> Stashed changes
 @Composable
 fun SettingsScreen(
     onLoggedOut: () -> Unit,
@@ -74,9 +90,44 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+<<<<<<< Updated upstream
     val context = LocalContext.current
     val biometricAvailability = remember(context) { BiometricStatus.checkAvailability(context) }
     val biometricAvailable = biometricAvailability is BiometricAvailability.Available
+=======
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var biometricAvailability by remember { mutableStateOf(BiometricStatus.checkAvailability(context)) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                biometricAvailability = BiometricStatus.checkAvailability(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val biometricPrompter = LocalBiometricPrompter.current
+    val lockViewModel: AppLockViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        viewModelStoreOwner = checkNotNull(context.findFragmentActivity())
+    )
+    val lockState by lockViewModel.uiState.collectAsState()
+    var biometricEnableFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(lockState.enableResult) {
+        when (lockState.enableResult) {
+            EnableLockResult.CONFIRMED -> {
+                biometricEnableFailed = false
+                viewModel.onBiometricToggled(true)
+                lockViewModel.consumeEnableResult()
+            }
+            EnableLockResult.NOT_CONFIRMED -> {
+                biometricEnableFailed = true
+                lockViewModel.consumeEnableResult()
+            }
+            null -> Unit
+        }
+    }
+>>>>>>> Stashed changes
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
 
@@ -124,6 +175,7 @@ fun SettingsScreen(
                     )
                     Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SettingsToggleRow(
+<<<<<<< Updated upstream
                         icon = Icons.Filled.Person,
                         title = "Biometric lock",
                         checked = uiState.preferences.biometricEnabled,
@@ -131,6 +183,35 @@ fun SettingsScreen(
                         onCheckedChange = { enabled ->
                             Log.i(TAG, "Biometric lock setting changed: $enabled")
                             viewModel.onBiometricToggled(enabled)
+=======
+                        icon = Icons.Filled.Fingerprint,
+                        title = "Biometric app lock",
+                        subtitle = if (biometricEnableFailed) {
+                            BIOMETRIC_ENABLE_NOT_CONFIRMED_MESSAGE
+                        } else {
+                            biometricSettingsSubtitle(
+                                biometricAvailability,
+                                uiState.preferences.biometricEnabled
+                            )
+                        },
+                        checked = uiState.preferences.biometricEnabled,
+                        enabled = isBiometricToggleEnabled(
+                            biometricAvailability,
+                            uiState.preferences.biometricEnabled
+                        ),
+                        onCheckedChange = { enabled ->
+                            if (enabled) {
+                                biometricEnableFailed = false
+                                if (biometricPrompter != null) {
+                                    biometricPrompter.show(BiometricPurpose.ENABLE_LOCK)
+                                } else {
+                                    biometricEnableFailed = true
+                                }
+                            } else {
+                                biometricEnableFailed = false
+                                viewModel.onBiometricToggled(false)
+                            }
+>>>>>>> Stashed changes
                         }
                     )
                     if (!biometricAvailable) {
