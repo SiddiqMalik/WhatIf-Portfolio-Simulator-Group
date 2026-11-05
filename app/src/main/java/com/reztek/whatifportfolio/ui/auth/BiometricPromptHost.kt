@@ -1,52 +1,107 @@
 package com.reztek.whatifportfolio.ui.auth
 
-import androidx.biometric.BiometricManager
+import android.content.Context
+import android.content.ContextWrapper
+import android.util.Log
 import androidx.biometric.BiometricPrompt
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.reztek.whatifportfolio.data.auth.BIOMETRIC_NOT_RECOGNISED_MESSAGE
+import com.reztek.whatifportfolio.data.auth.BiometricStatus
+import com.reztek.whatifportfolio.data.auth.biometricErrorMessage
 
-/** Creates a strong-biometric prompt bound to the hosting ComponentActivity. */
+private const val TAG = "BiometricPromptHost"
+
+/**
+ * Creates a strong-biometric prompt bound to the hosting FragmentActivity and
+ * returns a function that shows it.
+ *
+ * The BiometricPrompt is created once per activity (not on every recomposition);
+ * the callbacks are read through rememberUpdatedState so they always call the
+ * latest lambdas without rebuilding the prompt.
+ *
+ * @param onAuthenticationError receives the message to show and whether the
+ * password fallback should be opened.
+ *
+ * Logging records only outcomes and error codes - never passwords, tokens or
+ * personal data.
+ */
 @Composable
 fun rememberBiometricPrompt(
     onAuthenticated: () -> Unit,
-    onAuthenticationError: (String) -> Unit
+    onAuthenticationError: (message: String, openPasswordFallback: Boolean) -> Unit
 ): () -> Unit {
     val context = LocalContext.current
-    val activity = context as? FragmentActivity
-    val prompt = remember(activity, onAuthenticated, onAuthenticationError) {
-        activity?.let {
+    val activity = remember(context) { context.findFragmentActivity() }
+    val latestOnAuthenticated by rememberUpdatedState(onAuthenticated)
+    val latestOnError by rememberUpdatedState(onAuthenticationError)
+
+    val prompt = remember(activity) {
+        activity?.let { host ->
             BiometricPrompt(
-                it,
-                it.mainExecutor,
+                host,
+                // ContextCompat works on minSdk 26; Context.mainExecutor needs API 28.
+                ContextCompat.getMainExecutor(host),
                 object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        onAuthenticated()
+                        Log.i(TAG, "Biometric authentication succeeded")
+                        latestOnAuthenticated()
                     }
 
                     override fun onAuthenticationFailed() {
-                        onAuthenticationError("Biometric not recognized. Try again.")
+                        // The prompt stays open and lets the user try again.
+                        Log.w(TAG, "Biometric attempt not recognised")
+                        latestOnError(BIOMETRIC_NOT_RECOGNISED_MESSAGE, false)
                     }
 
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        // Cancellation and lockout keep the app locked; surface the platform message.
-                        onAuthenticationError(errString.toString())
+                        val info = biometricErrorMessage(errorCode, errString.toString())
+                        Log.w(TAG, "Biometric error code=$errorCode openFallback=${info.openPasswordFallback}")
+                        latestOnError(info.message, info.openPasswordFallback)
                     }
                 }
             )
         }
     }
-    return remember(prompt) {
-        {
-            prompt?.authenticate(
-                BiometricPrompt.PromptInfo.Builder()
-                    .setTitle("Unlock WhatIf Portfolio")
-                    .setSubtitle("Confirm your identity to continue")
-                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                    .setNegativeButtonText("Cancel")
-                    .build()
-            )
-        }
+
+    val promptInfo = remember {
+        BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Unlock WhatIf Portfolio")
+            .setSubtitle("Confirm your identity to continue")
+            // Same constant the availability check uses, so Settings and the prompt agree.
+            .setAllowedAuthenticators(BiometricStatus.REQUIRED_AUTHENTICATORS)
+            .setNegativeButtonText("Cancel")
+            .build()
     }
+
+    return remember(prompt, promptInfo) {
+        val show: () -> Unit = {
+            if (prompt == null) {
+                Log.e(TAG, "Cannot show biometric prompt: host is not a FragmentActivity")
+                latestOnError(
+                    "Biometrics are unavailable. Use your password instead.",
+                    true
+                )
+            } else {
+                Log.d(TAG, "Showing biometric prompt")
+                prompt.authenticate(promptInfo)
+            }
+        }
+        show
+    }
+}
+
+/** Walks the ContextWrapper chain to find the hosting FragmentActivity, if any. */
+private fun Context.findFragmentActivity(): FragmentActivity? {
+    var current: Context? = this
+    while (current is ContextWrapper) {
+        if (current is FragmentActivity) return current
+        current = current.baseContext
+    }
+    return null
 }

@@ -1,6 +1,7 @@
 package com.reztek.whatifportfolio.data.auth
 
 import android.content.Context
+import android.util.Log
 import androidx.biometric.BiometricManager
 
 sealed class BiometricAvailability {
@@ -15,28 +16,33 @@ sealed class BiometricAvailability {
 
 object BiometricStatus {
 
+    private const val TAG = "BiometricStatus"
+
     /**
-     * Checks whether biometric authentication is available on this device.
-     *
-     * Strong biometrics are checked first. If strong biometrics are not
-     * available, weak biometrics are checked as a fallback.
+     * The one authenticator class the app accepts. The BiometricPrompt in
+     * BiometricPromptHost uses this same constant, so "Available" in Settings
+     * always means the prompt can actually be shown.
+     */
+    const val REQUIRED_AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_STRONG
+
+    /**
+     * Checks whether strong biometric authentication is available on this device.
+     * Weak biometrics (for example some face unlock) are NOT accepted because the
+     * prompt requires BIOMETRIC_STRONG.
      */
     fun checkAvailability(context: Context): BiometricAvailability {
         val biometricManager = BiometricManager.from(context)
+        return checkAvailabilityWith { authenticators -> biometricManager.canAuthenticate(authenticators) }
+    }
 
-        val strongResult = biometricManager.canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG
-        )
-
-        if (strongResult == BiometricManager.BIOMETRIC_SUCCESS) {
-            return BiometricAvailability.Available
-        }
-
-        val weakResult = biometricManager.canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_WEAK
-        )
-
-        return mapResultCode(weakResult)
+    /**
+     * Same check with the platform call injected, so tests can verify that only
+     * [REQUIRED_AUTHENTICATORS] is ever queried. Logs the outcome (no personal data).
+     */
+    fun checkAvailabilityWith(canAuthenticate: (Int) -> Int): BiometricAvailability {
+        val result = mapResultCode(canAuthenticate(REQUIRED_AUTHENTICATORS))
+        Log.i(TAG, "Biometric availability: $result")
+        return result
     }
 
     /**

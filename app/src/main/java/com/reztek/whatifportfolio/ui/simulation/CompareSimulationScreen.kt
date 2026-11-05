@@ -16,8 +16,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.reztek.whatifportfolio.ui.chart.ChartSeriesPoint
 import com.reztek.whatifportfolio.ui.chart.PortfolioCanvasChart
@@ -37,7 +39,9 @@ data class ComparisonSimulation(
     val finalValue: Double,
     val realValue: Double?,
     val percentReturn: Double?,
-    val chartPoints: List<ChartSeriesPoint>
+    val chartPoints: List<ChartSeriesPoint>,
+    /** True when [totalContributed] is calculated from saved inputs rather than stored. */
+    val contributedIsDerived: Boolean = false
 )
 
 @Composable
@@ -80,10 +84,34 @@ fun CompareSimulationScreen(
             item {
                 Text("Key metrics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
-                MetricComparisonRow("Total contributed", currency(first.totalContributed), currency(second.totalContributed))
-                MetricComparisonRow("Final value", currency(first.finalValue), currency(second.finalValue))
-                MetricComparisonRow("Real value", first.realValue?.let(currency) ?: "Not available", second.realValue?.let(currency) ?: "Not available")
-                MetricComparisonRow("Return", first.percentReturn?.let { String.format(Locale.getDefault(), "%.2f%%", it) } ?: "Not available", second.percentReturn?.let { String.format(Locale.getDefault(), "%.2f%%", it) } ?: "Not available")
+                MetricComparisonRow(
+                    "Total contributed", first, second,
+                    firstValue = currency(first.totalContributed).withDerivedMark(first.contributedIsDerived),
+                    secondValue = currency(second.totalContributed).withDerivedMark(second.contributedIsDerived)
+                )
+                Spacer(Modifier.height(8.dp))
+                MetricComparisonRow("Final value", first, second, currency(first.finalValue), currency(second.finalValue))
+                Spacer(Modifier.height(8.dp))
+                MetricComparisonRow(
+                    "Real value", first, second,
+                    first.realValue?.let(currency) ?: NOT_AVAILABLE,
+                    second.realValue?.let(currency) ?: NOT_AVAILABLE
+                )
+                Spacer(Modifier.height(8.dp))
+                MetricComparisonRow(
+                    "Return", first, second,
+                    first.percentReturn?.let(::formatPercent) ?: NOT_AVAILABLE,
+                    second.percentReturn?.let(::formatPercent) ?: NOT_AVAILABLE
+                )
+                if (first.contributedIsDerived || second.contributedIsDerived) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "$DERIVED_MARK Calculated from the saved inputs (initial investment + monthly contribution " +
+                            "x 12 x years). It is not stored with the simulation.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             item {
                 Text("Projection timelines", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -124,24 +152,40 @@ private fun SimulationSummaryCard(
 }
 
 @Composable
-private fun MetricComparisonRow(label: String, firstValue: String, secondValue: String) {
+private fun MetricComparisonRow(
+    metric: String,
+    first: ComparisonSimulation,
+    second: ComparisonSimulation,
+    firstValue: String,
+    secondValue: String
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(firstValue, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            }
-            Column(Modifier.weight(1f)) {
-                Text("Simulation 2", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(secondValue, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
+            // The metric name appears once; each column is labelled with its own simulation.
+            Text(metric, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MetricColumn(first.title, firstValue, Modifier.weight(1f))
+                MetricColumn(second.title, secondValue, Modifier.weight(1f))
             }
         }
+    }
+}
+
+@Composable
+private fun MetricColumn(simulationTitle: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(
+            simulationTitle,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -176,8 +220,18 @@ private fun ChartSection(
     }
 }
 
+/** Same locale as the Saved Simulations list, so amounts read identically across screens. */
+private val AppLocale: Locale = Locale("en", "ZA")
+
+private const val NOT_AVAILABLE = "Not available"
+private const val DERIVED_MARK = "*"
+
+private fun String.withDerivedMark(derived: Boolean): String = if (derived) "$this $DERIVED_MARK" else this
+
+private fun formatPercent(value: Double): String = String.format(AppLocale, "%.2f%%", value)
+
 @Composable
 private fun rememberCurrencyFormatter(): (Double) -> String {
-    val formatter = NumberFormat.getCurrencyInstance()
+    val formatter = remember { NumberFormat.getCurrencyInstance(AppLocale) }
     return { amount -> formatter.format(amount) }
 }

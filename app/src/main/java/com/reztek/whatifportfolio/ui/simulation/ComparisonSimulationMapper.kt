@@ -24,8 +24,11 @@ object ComparisonSimulationMapper {
             id = "local-${entity.id}",
             title = entity.title,
             dateRange = "Saved ${java.text.DateFormat.getDateInstance().format(java.util.Date(entity.createdAt))}",
+            // Derived, not stored: same formula as SimulationEngine
+            // (initial + monthly x 12 x years). Room keeps only the inputs.
             totalContributed = entity.initialInvestment +
                 (entity.monthlyContribution * entity.years * 12),
+            contributedIsDerived = true,
             finalValue = entity.finalNominalValue,
             realValue = entity.finalRealValue,
             percentReturn = null,
