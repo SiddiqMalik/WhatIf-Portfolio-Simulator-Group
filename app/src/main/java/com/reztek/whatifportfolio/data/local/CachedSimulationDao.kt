@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CachedSimulationDao {
 
+    /** (id, updatedAt) of every cached row, used to decide which full results to prefetch. */
+    @Query("SELECT id, updatedAt FROM cached_simulations")
+    suspend fun stamps(): List<DetailStamp>
+
     /** Everything the user should see; rows queued for deletion are hidden immediately. */
     @Query("SELECT * FROM cached_simulations WHERE syncStatus != 'PENDING_DELETE' ORDER BY createdAt DESC")
     fun observeVisible(): Flow<List<CachedSimulationEntity>>

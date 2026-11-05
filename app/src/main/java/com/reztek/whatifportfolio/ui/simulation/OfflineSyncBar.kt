@@ -36,6 +36,25 @@ fun syncLabel(status: SyncStatus): String = when (status) {
     SyncStatus.FAILED_UPDATE, SyncStatus.FAILED_DELETE -> "Sync failed"
 }
 
+/** Shown on the results screens when the data is the on-device copy because there is no connection. */
+@Composable
+fun OfflineCopyBanner(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(WarningAmber.copy(alpha = 0.14f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Offline - showing the copy saved on this device.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
 /**
  * Banner shown while the device is offline or changes are waiting to sync.
  * Hidden when online with nothing queued.

@@ -106,7 +106,8 @@ fun SimulationResultsScreen(
                     onWindow = viewModel::setWindow,
                     onSave = viewModel::saveSimulation,
                     contentPadding = padding,
-                    animateChart = true
+                    animateChart = true,
+                    offlineCopy = state.fromCache
                 )
             }
         }
@@ -124,7 +125,8 @@ fun ResultsContent(
     onSave: () -> Unit,
     contentPadding: PaddingValues,
     animateChart: Boolean = true,
-    footer: (@Composable () -> Unit)? = null
+    footer: (@Composable () -> Unit)? = null,
+    offlineCopy: Boolean = false
 ) {
     val currency = NumberFormat.getCurrencyInstance(Locale("en", "ZA"))
     Column(
@@ -135,6 +137,7 @@ fun ResultsContent(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (offlineCopy) OfflineCopyBanner()
         Text(
             simulation.name,
             style = MaterialTheme.typography.headlineSmall,

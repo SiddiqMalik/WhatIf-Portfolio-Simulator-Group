@@ -102,6 +102,7 @@ fun SimulationDetailScreen(
                     onSave = {},
                     contentPadding = padding,
                     animateChart = false,
+                    offlineCopy = state.fromCache,
                     footer = {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             actionError?.let { InlineErrorBanner(it) }

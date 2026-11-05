@@ -10,6 +10,7 @@ import com.reztek.whatifportfolio.data.local.SyncStatus
 import com.reztek.whatifportfolio.data.local.toCachedEntity
 import com.reztek.whatifportfolio.data.remote.ApiService
 import com.reztek.whatifportfolio.data.remote.NetworkModule
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -37,7 +38,8 @@ class OfflineSimulationRepository(
     private val dao: CachedSimulationDao,
     private val api: ApiService = NetworkModule.apiService,
     private val inTransaction: suspend (suspend () -> Unit) -> Unit = { block -> block() },
-    private val clock: () -> Long = { System.currentTimeMillis() }
+    private val clock: () -> Long = { System.currentTimeMillis() },
+    private val detailCache: OfflineDataCache? = null
 ) {
 
     val visibleSimulations: Flow<List<CachedSimulationEntity>> = dao.observeVisible()
@@ -58,6 +60,37 @@ class OfflineSimulationRepository(
             dao.deleteSyncedNotIn(remote.map { it.id })
         }
         Log.i(TAG, "Refreshed cache from server: ${remote.size} simulation(s)")
+    }
+
+    /**
+     * Best-effort: stores the full result of each saved simulation (allocations,
+     * breakdown, chart data) so it can be reopened offline. Only simulations that
+     * are missing or changed since last time are fetched, and it stops at the first
+     * network failure. Never throws.
+     */
+    suspend fun prefetchDetails() {
+        val cache = detailCache ?: return
+        try {
+            cache.pruneOrphans()
+            val known = cache.detailStamps()
+            val stale = dao.stamps().filter { known[it.id] != it.updatedAt }.take(MAX_PREFETCH)
+            for (item in stale) {
+                try {
+                    cache.saveDetail(api.getSimulation(item.id))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: IOException) {
+                    Log.w(TAG, "Prefetch paused, network unavailable: ${e.message}")
+                    break
+                } catch (e: HttpException) {
+                    Log.w(TAG, "Prefetch skipped ${item.id} (HTTP ${e.code()})")
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Prefetch failed: ${e.message}")
+        }
     }
 
     /** Renames locally and queues the change. Returns false if nothing changed. */
@@ -186,13 +219,15 @@ class OfflineSimulationRepository(
 
     companion object {
         const val MAX_ATTEMPTS = 5
+        private const val MAX_PREFETCH = 30
         private val syncMutex = Mutex()
 
         fun create(context: Context): OfflineSimulationRepository {
             val db = SimulationDatabase.getDatabase(context)
             return OfflineSimulationRepository(
                 dao = db.cachedSimulationDao(),
-                inTransaction = { block -> db.withTransaction { block() } }
+                inTransaction = { block -> db.withTransaction { block() } },
+                detailCache = OfflineDataCache(db.offlineCacheDao(), db.cachedSimulationDao())
             )
         }
     }

@@ -191,6 +191,9 @@ class SavedSimulationsViewModel(
             runCatching { offline.syncPending() }
             try {
                 offline.refreshFromServer()
+                // The list is current; fetching full results for offline use is background work.
+                _loading.value = false
+                runCatching { offline.prefetchDetails() }
             } catch (e: Exception) {
                 Log.w(TAG, "Refresh failed, showing cached data: ${e.message}")
                 // Cached simulations stay visible; only error out when there is nothing to show.

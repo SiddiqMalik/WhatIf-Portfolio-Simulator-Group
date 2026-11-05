@@ -8,8 +8,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [SavedSimulationEntity::class, CachedSimulationEntity::class],
-    version = 2,
+    entities = [
+        SavedSimulationEntity::class,
+        CachedSimulationEntity::class,
+        CachedSimulationDetailEntity::class,
+        CachedAssetSearchEntity::class
+    ],
+    version = 3,
     exportSchema = false
 )
 abstract class SimulationDatabase : RoomDatabase() {
@@ -18,6 +23,9 @@ abstract class SimulationDatabase : RoomDatabase() {
 
     // PART3-ASH: offline cache of cloud simulations + sync bookkeeping.
     abstract fun cachedSimulationDao(): CachedSimulationDao
+
+    // PART3-ASH: local copies of simulation details and asset searches.
+    abstract fun offlineCacheDao(): OfflineCacheDao
 
     companion object {
         @Volatile
@@ -57,6 +65,27 @@ abstract class SimulationDatabase : RoomDatabase() {
             }
         }
 
+        /** v2 -> v3: adds the simulation-detail and asset-search caches. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `cached_simulation_details` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`json` TEXT NOT NULL, " +
+                        "`updatedAt` TEXT NOT NULL, " +
+                        "`cachedAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `cached_asset_searches` (" +
+                        "`cacheKey` TEXT NOT NULL, " +
+                        "`json` TEXT NOT NULL, " +
+                        "`cachedAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`cacheKey`))"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): SimulationDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -64,7 +93,7 @@ abstract class SimulationDatabase : RoomDatabase() {
                     SimulationDatabase::class.java,
                     "whatif_portfolio_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
