@@ -1,6 +1,8 @@
 
 # What-If Portfolio Simulator POE
 
+[![Android CI](https://github.com/SiddiqMalik/WhatIf-Portfolio-Simulator-Group/actions/workflows/android.yml/badge.svg)](https://github.com/SiddiqMalik/WhatIf-Portfolio-Simulator-Group/actions/workflows/android.yml)
+
 Android app for PROG7314 / OPSC7312 Part 2 — a portfolio "what-if" simulator that projects how an investment grows over time, both in nominal terms and adjusted for inflation (CPI).
 
 ## Overview
