@@ -48,6 +48,29 @@ Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` 
 | kotlinx-coroutines-test | Coroutine/ViewModel test support |
 | GitHub Actions | CI — automated build + test on every push |
 
+## Part 3 Team Contributions & Rubric Ownership
+
+### Member 1 (Jordan) — Authentication & Custom Feature
+- **Native Biometric Authentication**: Integrated `BiometricPrompt` with support for fingerprint and facial authentication, dynamically linked to the user's active session.
+- **Biometric Error & Exception Handling**: Handled unsupported devices, un-enrolled states, cancellations, and failed attempts gracefully with appropriate logging.
+- **Asset Comparison Matrix (Feature 4)**: Implemented an interactive comparison UI enabling side-by-side evaluation of simulated asset performance metrics.
+
+### Member 2 (Ash) — Offline Storage & Synchronisation
+- **Local Persistence (RoomDB)**: Built persistent local storage for simulations using Room entity models, DAOs, and database components.
+- **Offline Workflow**: Allowed simulation actions to be performed without network access, immediately displaying saved results.
+- **Connectivity Detection & Sync Queue**: Added network connectivity detectors to automatically flush pending offline actions to the hosted REST API upon reconnection.
+
+### Member 3 (David) — Real-Time Notifications & Localization
+- **Firebase Cloud Messaging (FCM)**: Integrated FCM push notification handlers for foreground and background push notification triggers.
+- **Multi-Language Localization**: Added persistent language support for **English**, **isiXhosa**, and **Afrikaans** using standard Android string resources.
+- **UI & Accessibility Polish**: Enhanced layout consistency, navigation transitions, input validation feedback, and dark mode themes.
+
+### Member 4 (Siddiq) — Integration, CI/CD, Documentation & Release
+- **GitHub Actions CI/CD Pipeline**: Configured `.github/workflows/android.yml` to automatically execute unit tests (`testDebugUnitTest`) and debug builds (`assembleDebug`) on remote pushes.
+- **Repository Hardening & Code Hygiene**: Resolved workspace merge issues, updated Gradle wrappers, deduplicated configurations, and maintained a zero-warning baseline build.
+- **Submission Documentation & Release Engineering**: Authored `MERGE.md`, `RELEASE_NOTES.md`, `AI_STATEMENT.md`, `STORE_RELEASE.md`, updated master project documentation, and prepared release assets for Play Store publication.
+
+---
 ## System Architecture
 
 
@@ -105,7 +128,6 @@ Firebase Auth and Firestore are wired directly into the app on `main`. A custom 
 
 ### Android Application Architecture
 
-=======
 Firebase Auth and Firestore are wired directly into the app on `main`. A custom REST API layer also exists (built and deployed) but is not yet merged into `main` — see REST API / Backend.
 Android Application Architecture
 
