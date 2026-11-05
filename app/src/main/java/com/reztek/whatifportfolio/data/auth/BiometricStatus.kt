@@ -1,32 +1,26 @@
-
 package com.reztek.whatifportfolio.data.auth
 
 import android.content.Context
 import androidx.biometric.BiometricManager
 
-/**
- * Describes whether biometric authentication can be used on this device.
- *
- * Use checkAvailability() before displaying or launching a biometric prompt.
- */
 sealed class BiometricAvailability {
     data object Available : BiometricAvailability()
     data object NoneEnrolled : BiometricAvailability()
     data object NoHardware : BiometricAvailability()
     data object HardwareUnavailable : BiometricAvailability()
     data object SecurityUpdateRequired : BiometricAvailability()
-    data class Unknown(val reason: String? = null) : BiometricAvailability()
+
+    data class Unknown(val code: Int) : BiometricAvailability()
 }
 
-/**
- * Checks biometric availability using AndroidX BiometricManager.
- *
- * Class 3 biometrics (strong fingerprint/face authentication) are preferred.
- * If the device does not support Class 3, Class 2 biometrics are checked as
- * a fallback.
- */
 object BiometricStatus {
 
+    /**
+     * Checks whether biometric authentication is available on this device.
+     *
+     * Strong biometrics are checked first. If strong biometrics are not
+     * available, weak biometrics are checked as a fallback.
+     */
     fun checkAvailability(context: Context): BiometricAvailability {
         val biometricManager = BiometricManager.from(context)
 
@@ -42,7 +36,17 @@ object BiometricStatus {
             BiometricManager.Authenticators.BIOMETRIC_WEAK
         )
 
-        return when (weakResult) {
+        return mapResultCode(weakResult)
+    }
+
+    /**
+     * Converts a BiometricManager result code into a BiometricAvailability.
+     *
+     * This is a pure function, allowing it to be tested without Android
+     * Context or a mocked BiometricManager.
+     */
+    fun mapResultCode(resultCode: Int): BiometricAvailability {
+        return when (resultCode) {
             BiometricManager.BIOMETRIC_SUCCESS ->
                 BiometricAvailability.Available
 
@@ -58,15 +62,8 @@ object BiometricStatus {
             BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED ->
                 BiometricAvailability.SecurityUpdateRequired
 
-            BiometricManager.BIOMETRIC_STATUS_UNKNOWN ->
-                BiometricAvailability.Unknown(
-                    "Biometric availability could not be determined."
-                )
-
             else ->
-                BiometricAvailability.Unknown(
-                    "BiometricManager returned status code: $weakResult"
-                )
+                BiometricAvailability.Unknown(resultCode)
         }
     }
 }
