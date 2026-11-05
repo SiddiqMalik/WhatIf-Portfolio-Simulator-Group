@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">What-If Portefeulje</string>
+
+    <string name="nav_home">Tuis</string>
+    <string name="nav_saved">Gestoor</string>
+    <string name="nav_settings">Instellings</string>
+
+    <string name="sign_in_title">Teken in</string>
+    <string name="sign_in_subtitle">Gebruik jou e-pos en wagwoord om voort te gaan</string>
+    <string name="email_label">E-pos</string>
+    <string name="password_label">Wagwoord</string>
+    <string name="action_sign_in">Teken in</string>
+    <string name="action_create_account">Skep rekening</string>
+    <string name="error_email_required">Voer jou e-posadres in.</string>
+    <string name="error_password_required">Voer jou wagwoord in.</string>
+    <string name="error_password_short">Wagwoord moet ten minste 6 karakters wees.</string>
+
+    <string name="settings_title">Instellings</string>
+    <string name="settings_preferences">Voorkeure</string>
+    <string name="settings_display_currency">Vertoonvaluta</string>
+    <string name="settings_dark_theme">Donker tema</string>
+    <string name="settings_notifications_language">Kennisgewings &amp; taal</string>
+    <string name="settings_push_notifications">Stootkennisgewings</string>
+    <string name="settings_language">Taal</string>
+    <string name="settings_log_out">Teken uit</string>
+    <string name="settings_log_out_confirm_title">Teken uit?</string>
+    <string name="settings_log_out_confirm_body">Jy sal weer moet inteken om jou simulasies te sien.</string>
+    <string name="settings_on">Aan</string>
+    <string name="settings_off">Af</string>
+    <string name="language_english">Engels</string>
+    <string name="language_afrikaans">Afrikaans</string>
+    <string name="language_isixhosa">isiXhosa</string>
+    <string name="language_picker_title">Kies taal</string>
+    <string name="action_cancel">Kanselleer</string>
+
+    <string name="dashboard_greeting">Jou portefeulje-scenario\'s</string>
+    <string name="dashboard_new_simulation">Nuwe simulasie</string>
+    <string name="dashboard_view_all">Sien alles</string>
+    <string name="dashboard_empty_title">Nog geen simulasies nie</string>
+    <string name="dashboard_empty_subtitle">Voer \'n historiese terugtoets of toekomstige projeksie uit om dit hier te sien.</string>
+    <string name="dashboard_retry">Probeer weer</string>
+    <string name="dashboard_error_generic">Kon nie jou simulasies laai nie.</string>
+
+    <string name="notification_channel_simulations">Simulasies</string>
+    <string name="notification_channel_simulations_desc">Waarskuwings wanneer \'n simulasie klaar is</string>
+    <string name="notification_simulation_ready_title">Simulasie gereed</string>
+    <string name="notification_simulation_ready_body">Jou what-if-scenario is klaar. Tik om resultate oop te maak.</string>
+    <string name="notification_permission_rationale">Laat kennisgewings toe om te weet wanneer simulasies klaar is.</string>
+
+    <string name="cd_back">Terug</string>
+    <string name="cd_add">Voeg by</string>
+    <string name="loading">Laai…</string>
+</resources>

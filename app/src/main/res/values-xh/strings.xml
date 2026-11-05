@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">What-If Portfolio</string>
+
+    <string name="nav_home">Ikhaya</string>
+    <string name="nav_saved">Eligciniweyo</string>
+    <string name="nav_settings">Izicwangciso</string>
+
+    <string name="sign_in_title">Ngena</string>
+    <string name="sign_in_subtitle">Sebenzisa i-imeyile kunye nephasiwedi yakho ukuqhubeka</string>
+    <string name="email_label">I-imeyile</string>
+    <string name="password_label">Iphasiwedi</string>
+    <string name="action_sign_in">Ngena</string>
+    <string name="action_create_account">Yenza iakhawunti</string>
+    <string name="error_email_required">Faka idilesi ye-imeyile yakho.</string>
+    <string name="error_password_required">Faka iphasiwedi yakho.</string>
+    <string name="error_password_short">Iphasiwedi kufuneka ibe neempawu ezingama-6 ubuncinane.</string>
+
+    <string name="settings_title">Izicwangciso</string>
+    <string name="settings_preferences">Izikhethwa</string>
+    <string name="settings_display_currency">Imali eboniswayo</string>
+    <string name="settings_dark_theme">Umxholo omnyama</string>
+    <string name="settings_notifications_language">Izaziso kunye nolwimi</string>
+    <string name="settings_push_notifications">Izaziso ezithunyelwayo</string>
+    <string name="settings_language">Ulwimi</string>
+    <string name="settings_log_out">Phuma</string>
+    <string name="settings_log_out_confirm_title">Phuma?</string>
+    <string name="settings_log_out_confirm_body">Kuya kufuneka ungene kwakhona ukuze ufikelele kwiisimulations zakho.</string>
+    <string name="settings_on">Ivuliwe</string>
+    <string name="settings_off">Icimile</string>
+    <string name="language_english">IsiNgesi</string>
+    <string name="language_afrikaans">IsiBhulu</string>
+    <string name="language_isixhosa">IsiXhosa</string>
+    <string name="language_picker_title">Khetha ulwimi</string>
+    <string name="action_cancel">Rhoxisa</string>
+
+    <string name="dashboard_greeting">Iimeko zepotfoliyo yakho</string>
+    <string name="dashboard_new_simulation">Isimulations entsha</string>
+    <string name="dashboard_view_all">Jonga konke</string>
+    <string name="dashboard_empty_title">Akukho zisimulations okwangoku</string>
+    <string name="dashboard_empty_subtitle">Qhuba uvavanyo lwembali okanye uqikelelo lwexesha elizayo ukuze uzibone apha.</string>
+    <string name="dashboard_retry">Zama kwakhona</string>
+    <string name="dashboard_error_generic">Ayikwazanga ukulayisha iisimulations zakho.</string>
+
+    <string name="notification_channel_simulations">Iisimulations</string>
+    <string name="notification_channel_simulations_desc">Izaziso xa isimulations igqibile</string>
+    <string name="notification_simulation_ready_title">Isimulations ilungile</string>
+    <string name="notification_simulation_ready_body">Imeko yakho ye-what-if igqibile. Cofa ukuvula iziphumo.</string>
+    <string name="notification_permission_rationale">Vumela izaziso ukuze wazi xa iisimulations zigqiba.</string>
+
+    <string name="cd_back">Emva</string>
+    <string name="cd_add">Yongeza</string>
+    <string name="loading">Iyalayisha…</string>
+</resources>

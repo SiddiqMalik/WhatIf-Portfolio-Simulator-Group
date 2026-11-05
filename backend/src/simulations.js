@@ -3,6 +3,7 @@ import { getDb } from "./firebase.js";
 import { getAssetHistory } from "./assetHistory.js";
 import { getCpiSeries } from "./cpiData.js";
 import { runSimulation } from "./simulationEngine.js";
+import { notifySimulationReady } from "./fcm.js";
 
 function docToJson(doc) {
   const data = doc.data();
@@ -101,6 +102,11 @@ export async function createSimulation(req, res) {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
+
+    // PART3-DAVID: fire-and-forget FCM — never blocks / fails the response
+    notifySimulationReady(req.uid, ref.id, name).catch((e) =>
+      console.error("[fcm] notifySimulationReady rejected", e)
+    );
 
     const now = new Date().toISOString();
     res.status(201).json({ id: ref.id, ...docFields, createdAt: now, updatedAt: now });

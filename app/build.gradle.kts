@@ -73,10 +73,16 @@ dependencies {
 
     implementation("androidx.navigation:navigation-compose:2.8.1")
 
-    // Firebase Auth/Firestore
-    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+    // Firebase — BoM from Console setup; product libs omit versions
+    implementation(platform("com.google.firebase:firebase-bom:35.1.0"))
+    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    // PART3-DAVID
+    implementation("com.google.firebase:firebase-messaging")
+
+    // AppCompat locales for Afrikaans / isiXhosa — PART3-DAVID
+    implementation("androidx.appcompat:appcompat:1.7.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
