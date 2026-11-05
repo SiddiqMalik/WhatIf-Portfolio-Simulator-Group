@@ -32,3 +32,49 @@ To build the signed Android App Bundle (AAB) for Play Store uploading:
 
 ```bash
 ./gradlew bundleRelease
+```
+
+The generated bundle is written to:
+
+```
+app/build/outputs/bundle/release/app-release.aab
+```
+
+To build a signed release APK for local installation and testing instead:
+
+```bash
+./gradlew assembleRelease
+```
+
+---
+
+## 4. Privacy & Data Protection Compliance
+
+* **Biometric Security**: Biometric credentials and fingerprint data are processed exclusively within the hardware-backed Android KeyStore on-device. No raw biometric templates leave the physical device or transmit to external servers.
+* **Push Notification Tokens**: Device registration tokens generated via Firebase Cloud Messaging (FCM) are stored securely on the user's Firestore document (`users/{uid}`) solely to route targeted notifications.
+
+---
+
+## 5. Release Signing Setup
+
+To generate production release builds locally or in GitHub Actions, configure the following secrets:
+
+* `KEYSTORE_BASE64` (Base64-encoded `.jks` file)
+* `KEY_ALIAS`
+* `KEY_PASSWORD`
+* `STORE_PASSWORD`
+
+To produce the Base64 value for `KEYSTORE_BASE64`:
+
+```bash
+base64 -w 0 release-keystore.jks > keystore.base64.txt
+```
+
+In GitHub Actions, decode the secret back into a keystore file before running the release build:
+
+```bash
+echo "$KEYSTORE_BASE64" | base64 --decode > app/release-keystore.jks
+./gradlew bundleRelease
+```
+
+> **Security note:** Never commit the `.jks` keystore file or any passwords to the repository. Store them only as GitHub repository secrets (Settings → Secrets and variables → Actions) and keep a secure offline backup of the keystore, since losing it prevents future updates to the published app.
