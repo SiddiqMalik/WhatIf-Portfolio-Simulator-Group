@@ -448,8 +448,19 @@ backend/
 - **Navigation graph:** fully wired for all 7 screens (Login → Dashboard → Settings, with an auth-gated start destination), even though `MainActivity` doesn't call it yet (see [Known Limitations](#known-limitations)). Placeholder screens exist purely so the app compiles and runs end-to-end on a device, satisfying the "must successfully compile and run" prototype requirement even before the rest of the team's screens land — swap each `PlaceholderScreen(...)` call in `WhatIfNavGraph.kt` for the real composable as it's completed.
 
 ## Demonstration Video
+- **Final POE Video Walkthrough**: [Link to Demonstration Video Placeholder - Add YouTube/Google Drive Link Here]
 
-*(link to be added)*
+---
+
+## Application Screenshots
+
+| Authentication & Biometrics | Dashboard & Real-Time Chart |
+| :---: | :---: |
+| ![Auth & Biometric Prompt](docs/screenshots/01_auth_biometric.png) | ![Dashboard Canvas Chart](docs/screenshots/02_dashboard_chart.png) |
+
+| Offline Persistence & Sync | Multi-Language & Settings |
+| :---: | :---: |
+| ![Offline Sync Queue](docs/screenshots/03_offline_sync.png) | ![Language Settings](docs/screenshots/04_language_settings.png) |
 
 ## AI Usage
 
