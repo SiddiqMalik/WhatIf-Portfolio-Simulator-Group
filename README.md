@@ -1,5 +1,5 @@
 
-# What-If Portfolio Simulator Part 2
+# What-If Portfolio Simulator POE
 
 Android app for PROG7314 / OPSC7312 Part 2 — a portfolio "what-if" simulator that projects how an investment grows over time, both in nominal terms and adjusted for inflation (CPI).
 
@@ -48,6 +48,29 @@ Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` 
 | kotlinx-coroutines-test | Coroutine/ViewModel test support |
 | GitHub Actions | CI — automated build + test on every push |
 
+## Part 3 Team Contributions & Rubric Ownership
+
+### Member 1 (Jordan) — Authentication & Custom Feature
+- **Native Biometric Authentication**: Integrated `BiometricPrompt` with support for fingerprint and facial authentication, dynamically linked to the user's active session.
+- **Biometric Error & Exception Handling**: Handled unsupported devices, un-enrolled states, cancellations, and failed attempts gracefully with appropriate logging.
+- **Asset Comparison Matrix (Feature 4)**: Implemented an interactive comparison UI enabling side-by-side evaluation of simulated asset performance metrics.
+
+### Member 2 (Ash) — Offline Storage & Synchronisation
+- **Local Persistence (RoomDB)**: Built persistent local storage for simulations using Room entity models, DAOs, and database components.
+- **Offline Workflow**: Allowed simulation actions to be performed without network access, immediately displaying saved results.
+- **Connectivity Detection & Sync Queue**: Added network connectivity detectors to automatically flush pending offline actions to the hosted REST API upon reconnection.
+
+### Member 3 (David) — Real-Time Notifications & Localization
+- **Firebase Cloud Messaging (FCM)**: Integrated FCM push notification handlers for foreground and background push notification triggers.
+- **Multi-Language Localization**: Added persistent language support for **English**, **isiXhosa**, and **Afrikaans** using standard Android string resources.
+- **UI & Accessibility Polish**: Enhanced layout consistency, navigation transitions, input validation feedback, and dark mode themes.
+
+### Member 4 (Siddiq) — Integration, CI/CD, Documentation & Release
+- **GitHub Actions CI/CD Pipeline**: Configured `.github/workflows/android.yml` to automatically execute unit tests (`testDebugUnitTest`) and debug builds (`assembleDebug`) on remote pushes.
+- **Repository Hardening & Code Hygiene**: Resolved workspace merge issues, updated Gradle wrappers, deduplicated configurations, and maintained a zero-warning baseline build.
+- **Submission Documentation & Release Engineering**: Authored `MERGE.md`, `RELEASE_NOTES.md`, `AI_STATEMENT.md`, `STORE_RELEASE.md`, updated master project documentation, and prepared release assets for Play Store publication.
+
+---
 ## System Architecture
 
 
@@ -105,7 +128,6 @@ Firebase Auth and Firestore are wired directly into the app on `main`. A custom 
 
 ### Android Application Architecture
 
-=======
 Firebase Auth and Firestore are wired directly into the app on `main`. A custom REST API layer also exists (built and deployed) but is not yet merged into `main` — see REST API / Backend.
 Android Application Architecture
 
@@ -462,36 +484,3 @@ Generative AI was used as a support tool during the development of this project.
 - Firebase (2026). *Cloud Firestore Security Rules.*
 - Vercel (2026). *Deploying Node.js Serverless Functions.*
 - Square (2026). *Retrofit — A Type-Safe HTTP Client for Android.*
-=======
-Design Notes (UI/Navigation)
-Colour language: teal (`TealPrimary`) / navy (`NavyDeep`) throughout, matching the app icon concept from Deliverable 2 and reserved for the nominal-vs-real-value distinction used in the results chart.
-Navigation graph: fully wired for all 7 screens (Login → Dashboard → Settings, with an auth-gated start destination), even though `MainActivity` doesn't call it yet (see Known Limitations). Placeholder screens exist purely so the app compiles and runs end-to-end on a device, satisfying the "must successfully compile and run" prototype requirement even before the rest of the team's screens land — swap each `PlaceholderScreen(...)` call in `WhatIfNavGraph.kt` for the real composable as it's completed.
-Demonstration Video
-(link to be added)
-AI Usage
-Generative AI was used as a support tool during the development of this project. It was mainly used to assist with Git and GitHub commands when pushing and managing code in the repository, as well as to help format and organise the README.md file so that the documentation remained consistent and uniform. The project code and implementation were developed and reviewed by the group members. AI-generated suggestions were checked and adapted before being used in the project. AI was not used to generate application features, UI screens, the simulation engine's logic, or any teammate's production code.
-Team Contributions
-Person	Scope
-Person 1	Core Android UI & Navigation (Sign-In, Dashboard, Settings screens; navigation graph; local preferences)
-Person 2	Custom Cloud REST API & Backend Integration
-Person 3	Core Simulation Engine & Custom Features (calculation engine, chart, saved simulations)
-Person 4	DevOps, Automated Testing, Documentation & Video
-Known Limitations
-The navigation graph is not yet the app's entry point. `WhatIfNavGraph` is fully implemented and wired (Login → Dashboard → Settings, with auth-gated start destination), but `MainActivity` currently calls `SimulationBuilderScreen()` directly in `setContent`, rather than `WhatIfNavGraph(...)`. As a result, sign-in, Dashboard, and Settings are not reachable from a fresh app launch yet, even though all three are implemented and unit tested individually.
-`SavedSimulationsScreen` is implemented but not routed. The `saved_simulations` destination in `WhatIfNavGraph` still points at `PlaceholderScreen`, even though `SavedSimulationsScreen.kt` is a working screen backed by Room.
-Two separate `SimulationResult`/`SimulationPoint` definitions exist — one in `data.engine` (used by `SimulationEngine`), one in `data.model` (imported by `PortfolioCanvasChart`). They currently have identical fields, but being different types, passing one where the other is expected will not compile. Worth consolidating before Part 3.
-The REST API/backend is not yet merged into `main` — see REST API / Backend.
-`gradlew` has CRLF line endings, which breaks the `#!/bin/sh` shebang on Linux/macOS (`./gradlew: No such file or directory`). This does not affect Windows, but GitHub Actions runs on `ubuntu-latest`, so this can affect CI runs depending on how the file was checked out. Recommend setting `core.autocrlf false` and re-committing the wrapper scripts if this causes CI failures.
-`SettingsViewModel` is not unit tested — see Testing.
-`google-services.json` committed to the repo is a placeholder project and will not authenticate against a real Firebase account; each developer needs their own for local testing (see Installation and Setup).
-References
-Google (2026). Credential Manager — Android Developers.
-Google (2026). Jetpack DataStore Preferences — Android Developers.
-Google (2026). Navigation with Compose — Android Developers.
-Firebase (2026). Authenticate Using Google Sign-In on Android.
-Alpha Vantage (2026). Stock Time Series APIs.
-CoinGecko (2026). CoinGecko API Documentation.
-Firebase (2026). Firebase Admin SDK — Verify ID Tokens.
-Firebase (2026). Cloud Firestore Security Rules.
-Vercel (2026). Deploying Node.js Serverless Functions.
-Square (2026). Retrofit — A Type-Safe HTTP Client for Android.
