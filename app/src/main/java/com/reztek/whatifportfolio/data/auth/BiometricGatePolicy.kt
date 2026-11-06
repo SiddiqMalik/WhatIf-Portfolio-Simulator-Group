@@ -13,22 +13,15 @@ object BiometricGatePolicy {
         biometricUnlocked: Boolean
     ): Boolean = preferencesLoaded && hasFirebaseSession && biometricEnabled && !biometricUnlocked
 
-    fun shouldLockAtLaunch(hasFirebaseSession: Boolean, biometricEnabled: Boolean): Boolean =
-        hasFirebaseSession && biometricEnabled
-
-    fun shouldShowLock(lockAtLaunch: Boolean?, unlocked: Boolean): Boolean =
-        lockAtLaunch == true && !unlocked
     /**
      * Decides, once per launch, whether this session is protected. Deciding once
      * means switching the setting on in Settings does not lock the user out
      * mid-session; the lock applies from the next fresh launch.
      */
-    fun shouldLockAtLaunch(
-        hasFirebaseSession: Boolean,
-        biometricEnabled: Boolean
-    ): Boolean = hasFirebaseSession && biometricEnabled
+    fun shouldLockAtLaunch(hasFirebaseSession: Boolean, biometricEnabled: Boolean): Boolean =
+        hasFirebaseSession && biometricEnabled
 
     /** The lock screen is shown while the launch decision is "lock" and the user has not unlocked yet. */
-    fun shouldShowLock(lockAtLaunch: Boolean?, biometricUnlocked: Boolean): Boolean =
-        lockAtLaunch == true && !biometricUnlocked
+    fun shouldShowLock(lockAtLaunch: Boolean?, unlocked: Boolean): Boolean =
+        lockAtLaunch == true && !unlocked
 }

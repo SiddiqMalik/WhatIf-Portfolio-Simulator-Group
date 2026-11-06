@@ -26,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
@@ -55,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -63,21 +61,13 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reztek.whatifportfolio.data.auth.BiometricAvailability
 import com.reztek.whatifportfolio.data.auth.BiometricStatus
-import com.reztek.whatifportfolio.data.auth.biometricSettingsSubtitle
-import com.reztek.whatifportfolio.data.auth.isBiometricToggleEnabled
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reztek.whatifportfolio.R
-import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.preferences.LocaleHelper
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_CURRENCIES
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_LOCALES
@@ -216,17 +206,16 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SettingsToggleRow(
                         icon = Icons.Filled.Fingerprint,
-                        title = "Biometric app lock",
-                        subtitle = if (biometricEnableFailed) {
-                            BIOMETRIC_ENABLE_NOT_CONFIRMED_MESSAGE
-                        } else {
                         title = stringResource(R.string.settings_biometric_lock),
                         subtitle = localized(
-                            biometricSettingsSubtitle(
-                                biometricAvailability,
-                                uiState.preferences.biometricEnabled
-                            )
-                        },
+                            if (biometricEnableFailed) {
+                                BIOMETRIC_ENABLE_NOT_CONFIRMED_MESSAGE
+                            } else {
+                                biometricSettingsSubtitle(
+                                    biometricAvailability,
+                                    uiState.preferences.biometricEnabled
+                                )
+                            }
                         ),
                         checked = uiState.preferences.biometricEnabled,
                         enabled = isBiometricToggleEnabled(
@@ -246,28 +235,6 @@ fun SettingsScreen(
                                 viewModel.onBiometricToggled(false)
                             }
                         }
-                    )
-                    if (biometricAvailability !is BiometricAvailability.Available) {
-                        Text(
-                            text = when (biometricAvailability) {
-                                BiometricAvailability.NoneEnrolled ->
-                                    "Set up fingerprint or face unlock in your device settings to enable this."
-                                BiometricAvailability.NoHardware ->
-                                    "This device does not support biometric authentication."
-                                BiometricAvailability.HardwareUnavailable ->
-                                    "Biometric hardware is temporarily unavailable."
-                                BiometricAvailability.SecurityUpdateRequired ->
-                                    "A device security update is required before biometrics can be used."
-                                is BiometricAvailability.Unknown ->
-                                    "Biometric authentication is currently unavailable."
-                                BiometricAvailability.Available -> ""
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                    }
-                        onCheckedChange = viewModel::onBiometricToggled
                     )
                 }
             }
@@ -473,9 +440,6 @@ private fun SettingsToggleRow(
     subtitle: String? = null,
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
-    onCheckedChange: (Boolean) -> Unit,
-    subtitle: String? = null,
-    enabled: Boolean = true
 ) {
     val onLabel = stringResource(R.string.settings_on)
     val offLabel = stringResource(R.string.settings_off)
@@ -489,15 +453,8 @@ private fun SettingsToggleRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-        Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-        Icon(
-            icon,
-            contentDescription = title,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
         Column(modifier = Modifier.weight(1f).padding(start = 14.dp, end = 8.dp)) {
-            Text(title)
+            Text(title, style = MaterialTheme.typography.bodyLarge)
             if (subtitle != null) {
                 Text(
                     subtitle,

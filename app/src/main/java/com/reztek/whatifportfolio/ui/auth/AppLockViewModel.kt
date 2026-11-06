@@ -9,8 +9,6 @@ import com.reztek.whatifportfolio.data.auth.BIOMETRIC_NOT_RECOGNISED_MESSAGE
 import com.reztek.whatifportfolio.data.auth.BiometricGatePolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import com.reztek.whatifportfolio.data.auth.BiometricGatePolicy
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +28,6 @@ data class AppLockUiState(
     val passwordLoading: Boolean = false,
     val promptPurpose: BiometricPurpose? = null,
     val enableResult: EnableLockResult? = null
-    val passwordLoading: Boolean = false
 ) {
     val showLock: Boolean get() = BiometricGatePolicy.shouldShowLock(lockAtLaunch, unlocked)
 }
@@ -145,16 +142,6 @@ class AppLockViewModel(
                 showPasswordFallback = false,
                 passwordError = null,
                 passwordLoading = false
-    fun onBiometricSuccess() {
-        Log.i(TAG, "Unlocked with biometrics")
-        _uiState.update { it.copy(unlocked = true, biometricMessage = null, passwordError = null) }
-    }
-
-    fun onBiometricError(message: String, openPasswordFallback: Boolean) {
-        _uiState.update {
-            it.copy(
-                biometricMessage = message,
-                showPasswordFallback = it.showPasswordFallback || openPasswordFallback
             )
         }
     }
@@ -175,7 +162,6 @@ class AppLockViewModel(
         _uiState.update { it.copy(passwordLoading = true, passwordError = null) }
         passwordJob?.cancel()
         passwordJob = viewModelScope.launch {
-        viewModelScope.launch {
             try {
                 user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
                 Log.i(TAG, "Unlocked with password fallback")

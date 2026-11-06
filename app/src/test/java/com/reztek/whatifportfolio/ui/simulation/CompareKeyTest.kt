@@ -8,7 +8,6 @@ import org.junit.Test
 class CompareKeyTest {
 
     @Test
-    fun parsesRemoteKeysKeepingTheFullId() {
     fun localKey_parsesToLocalId() {
         assertEquals(CompareKey.Local(7L), CompareKey.parse("local-7"))
     }
@@ -36,6 +35,9 @@ class CompareKeyTest {
     fun roundTripsTheKeysUsedByTheSavedList() {
         assertEquals(CompareKey.Local(7L), CompareKey.parse("local-${7L}"))
         assertEquals(CompareKey.Remote("r1"), CompareKey.parse("remote-r1"))
+    }
+
+    @Test
     fun localAndRemoteWithSameNumber_stayDifferent() {
         assertNotEquals(CompareKey.parse("local-7"), CompareKey.parse("remote-7"))
     }
