@@ -8,12 +8,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.fragment.app.FragmentActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.auth.FirebaseAuth
@@ -26,7 +28,9 @@ import com.reztek.whatifportfolio.notifications.NotificationIntentParser
 import com.reztek.whatifportfolio.notifications.ensureSimulationNotificationChannel
 import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
 import com.reztek.whatifportfolio.ui.auth.BiometricLockScreen
-import com.reztek.whatifportfolio.ui.auth.rememberBiometricPrompt
+import com.reztek.whatifportfolio.ui.auth.BiometricPrompter
+import com.reztek.whatifportfolio.ui.auth.BiometricPurpose
+import com.reztek.whatifportfolio.ui.auth.LocalBiometricPrompter
 import com.reztek.whatifportfolio.ui.theme.WhatIfPortfolioTheme
 import kotlinx.coroutines.flow.map
 
@@ -42,12 +46,21 @@ class MainActivity : AppCompatActivity() {
 
     private var pendingSimulationId by mutableStateOf<String?>(null)
 
+    // Survives rotation (so no re-lock) but not process death (so a restored app re-locks).
+    private val appLockViewModel: AppLockViewModel by viewModels()
+
+    private var pendingSimulationId by mutableStateOf<String?>(null)
+
+    private lateinit var biometricPrompter: BiometricPrompter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i(TAG, "onCreate")
         ensureSimulationNotificationChannel(this)
         enableEdgeToEdge()
         pendingSimulationId = NotificationIntentParser.simulationIdFromIntent(intent)
+
+        biometricPrompter = BiometricPrompter(this, appLockViewModel)
 
         val preferencesRepository = UserPreferencesRepository(applicationContext)
 
@@ -57,6 +70,46 @@ class MainActivity : AppCompatActivity() {
             val preferences by preferencesRepository.userPreferencesFlow
                 .map { it as UserPreferences? }
                 .collectAsStateWithLifecycle(initialValue = null)
+
+            val hasFirebaseSession = FirebaseAuth.getInstance().currentUser != null
+            val lockState by appLockViewModel.uiState.collectAsStateWithLifecycle()
+
+            LaunchedEffect(preferences, hasFirebaseSession) {
+                val pref = preferences
+                if (pref != null) {
+                    appLockViewModel.decideLockAtLaunch(pref.biometricEnabled, hasFirebaseSession)
+                }
+            }
+
+            CompositionLocalProvider(LocalBiometricPrompter provides biometricPrompter) {
+                WhatIfPortfolioTheme(darkTheme = preferences?.useDarkTheme ?: false) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        if (preferences == null || lockState.lockAtLaunch == null) {
+                            // Keep the initial surface blank while preferences and the
+                            // launch decision load, so the app is never revealed early.
+                        } else if (lockState.showLock) {
+                            val availability = remember { BiometricStatus.checkAvailability(this@MainActivity) }
+                            val biometricAvailable = availability == BiometricAvailability.Available
+                            BiometricLockScreen(
+                                onUnlock = { biometricPrompter.show(BiometricPurpose.UNLOCK) },
+                                onPasswordUnlock = appLockViewModel::onPasswordSubmitted,
+                                message = if (biometricAvailable) {
+                                    "Use your device biometrics to continue, or verify your account password."
+                                } else {
+                                    "Strong biometrics are currently unavailable. Verify your account password to continue."
+                                },
+                                errorMessage = lockState.biometricMessage,
+                                passwordError = lockState.passwordError,
+                                passwordLoading = lockState.passwordLoading,
+                                autoPrompt = biometricAvailable,
+                                biometricAvailable = biometricAvailable,
+                                showPasswordFallback = lockState.showPasswordFallback,
+                                onShowPasswordFallbackChange = appLockViewModel::onShowPasswordFallbackChange,
+                                onSignOut = appLockViewModel::signOut
+                            )
+                        } else {
+                            WhatIfNavGraph()
+                        }
             val lockState by appLockViewModel.uiState.collectAsStateWithLifecycle()
 
             // Decide ONCE per launch. Enabling the toggle later in Settings does not

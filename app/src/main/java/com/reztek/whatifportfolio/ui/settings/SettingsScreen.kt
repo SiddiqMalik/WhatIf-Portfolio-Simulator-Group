@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
@@ -45,6 +46,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +55,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.data.auth.BiometricAvailability
+import com.reztek.whatifportfolio.data.auth.BiometricStatus
+import com.reztek.whatifportfolio.data.auth.biometricSettingsSubtitle
+import com.reztek.whatifportfolio.data.auth.isBiometricToggleEnabled
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -70,12 +82,20 @@ import com.reztek.whatifportfolio.data.preferences.LocaleHelper
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_CURRENCIES
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_LOCALES
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
+import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
+import com.reztek.whatifportfolio.ui.auth.BiometricPurpose
+import com.reztek.whatifportfolio.ui.auth.EnableLockResult
+import com.reztek.whatifportfolio.ui.auth.LocalBiometricPrompter
+import com.reztek.whatifportfolio.ui.auth.findFragmentActivity
 import com.reztek.whatifportfolio.ui.components.WhatIfBottomNavBar
 import com.reztek.whatifportfolio.ui.i18n.localized
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
 
 private const val TAG = "SettingsScreen"
+
+private const val BIOMETRIC_ENABLE_NOT_CONFIRMED_MESSAGE =
+    "Biometric lock was not turned on because your identity was not confirmed."
 
 @Composable
 fun SettingsScreen(
@@ -99,6 +119,26 @@ fun SettingsScreen(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val biometricPrompter = LocalBiometricPrompter.current
+    val lockViewModel: AppLockViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        viewModelStoreOwner = checkNotNull(context.findFragmentActivity())
+    )
+    val lockState by lockViewModel.uiState.collectAsState()
+    var biometricEnableFailed by remember { mutableStateOf(false) }
+    LaunchedEffect(lockState.enableResult) {
+        when (lockState.enableResult) {
+            EnableLockResult.CONFIRMED -> {
+                biometricEnableFailed = false
+                viewModel.onBiometricToggled(true)
+                lockViewModel.consumeEnableResult()
+            }
+            EnableLockResult.NOT_CONFIRMED -> {
+                biometricEnableFailed = true
+                lockViewModel.consumeEnableResult()
+            }
+            null -> Unit
+        }
     }
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var showCurrencyPicker by remember { mutableStateOf(false) }
@@ -176,18 +216,57 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SettingsToggleRow(
                         icon = Icons.Filled.Fingerprint,
+                        title = "Biometric app lock",
+                        subtitle = if (biometricEnableFailed) {
+                            BIOMETRIC_ENABLE_NOT_CONFIRMED_MESSAGE
+                        } else {
                         title = stringResource(R.string.settings_biometric_lock),
                         subtitle = localized(
                             biometricSettingsSubtitle(
                                 biometricAvailability,
                                 uiState.preferences.biometricEnabled
                             )
+                        },
                         ),
                         checked = uiState.preferences.biometricEnabled,
                         enabled = isBiometricToggleEnabled(
                             biometricAvailability,
                             uiState.preferences.biometricEnabled
                         ),
+                        onCheckedChange = { enabled ->
+                            if (enabled) {
+                                biometricEnableFailed = false
+                                if (biometricPrompter != null) {
+                                    biometricPrompter.show(BiometricPurpose.ENABLE_LOCK)
+                                } else {
+                                    biometricEnableFailed = true
+                                }
+                            } else {
+                                biometricEnableFailed = false
+                                viewModel.onBiometricToggled(false)
+                            }
+                        }
+                    )
+                    if (biometricAvailability !is BiometricAvailability.Available) {
+                        Text(
+                            text = when (biometricAvailability) {
+                                BiometricAvailability.NoneEnrolled ->
+                                    "Set up fingerprint or face unlock in your device settings to enable this."
+                                BiometricAvailability.NoHardware ->
+                                    "This device does not support biometric authentication."
+                                BiometricAvailability.HardwareUnavailable ->
+                                    "Biometric hardware is temporarily unavailable."
+                                BiometricAvailability.SecurityUpdateRequired ->
+                                    "A device security update is required before biometrics can be used."
+                                is BiometricAvailability.Unknown ->
+                                    "Biometric authentication is currently unavailable."
+                                BiometricAvailability.Available -> ""
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
                         onCheckedChange = viewModel::onBiometricToggled
                     )
                 }
@@ -391,6 +470,9 @@ private fun SettingsToggleRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     checked: Boolean,
+    subtitle: String? = null,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit
     onCheckedChange: (Boolean) -> Unit,
     subtitle: String? = null,
     enabled: Boolean = true
@@ -406,6 +488,9 @@ private fun SettingsToggleRow(
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+        Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
         Icon(
             icon,
             contentDescription = title,

@@ -3,6 +3,7 @@ import { getDb } from "./firebase.js";
 import { getAssetHistory } from "./assetHistory.js";
 import { getCpiSeries } from "./cpiData.js";
 import { runSimulation } from "./simulationEngine.js";
+import { findUncoveredAsset, uncoveredAssetMessage } from "./seriesCoverage.js";
 import { notifySimulationReady } from "./fcm.js";
 
 function docToJson(doc) {
@@ -56,6 +57,11 @@ export async function createSimulation(req, res) {
     for (const a of allocations) {
       const interval = a.type === "crypto" ? "daily" : "monthly";
       assetSeries[a.symbol] = await getAssetHistory(a.symbol, a.type, interval);
+    }
+
+    const uncovered = findUncoveredAsset(assetSeries, startDate);
+    if (uncovered) {
+      return res.status(400).json({ error: { code: "invalid_request", message: uncoveredAssetMessage(uncovered, startDate) } });
     }
 
     const lastDates = Object.values(assetSeries).map((s) => s[s.length - 1]?.date).filter(Boolean);
