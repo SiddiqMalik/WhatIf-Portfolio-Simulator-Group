@@ -24,7 +24,7 @@ The app lets a signed-in user enter a starting investment, a monthly contributio
 | Saved simulations (local) | Implemented | Room database stores simulations on-device; `SavedSimulationsScreen` lists and deletes them |
 | Navigation graph | Implemented, not yet wired to the app entry point | See [Known Limitations](#known-limitations) |
 | REST API / cloud backend | Fully implemented and deployed, not yet merged into `main` | See [REST API / Backend](#rest-api--backend) |
-| Biometric auth, offline sync, push notifications, multi-language | Not yet implemented | POE-only scope, not required for Part 2 |
+| Biometric auth, offline sync, push notifications, multi-language | Implemented in Part 3 | See [Part 3 Team Contributions](#part-3-team-contributions--rubric-ownership) |
 
 The three user-defined features built for Part 2 are the **Simulation Builder**, the **nominal-vs-real Canvas chart**, and **local (Room) saved simulations** — all under `data/engine/`, `ui/chart/`, and `data/local/`.
 
@@ -58,9 +58,15 @@ Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` 
 - **Asset Comparison Matrix (Feature 4)**: Implemented an interactive comparison UI enabling side-by-side evaluation of simulated asset performance metrics.
 
 ### Member 2 (Ash) — Offline Storage & Synchronisation
-- **Local Persistence (RoomDB)**: Built persistent local storage for simulations using Room entity models, DAOs, and database components.
-- **Offline Workflow**: Allowed simulation actions to be performed without network access, immediately displaying saved results.
-- **Connectivity Detection & Sync Queue**: Added network connectivity detectors to automatically flush pending offline actions to the hosted REST API upon reconnection.
+- **Local-first storage (RoomDB)**: The Saved list reads from a Room cache (`cached_simulations`), so it opens instantly and works with no network. Database migrations (v1 to v3) keep existing data when the schema changes.
+- **Offline rename and delete**: Renaming or deleting a saved simulation is applied locally straight away and queued with a sync status (`PENDING_UPDATE`, `PENDING_DELETE`, `FAILED_UPDATE`, `FAILED_DELETE`, `SYNCED`). The Saved screen shows an offline banner and a "Pending sync" chip on each queued item.
+- **Background sync (WorkManager)**: `SimulationSyncWorker` runs only when a network is available, retries with exponential backoff, and pushes queued changes to the hosted REST API (`PUT`/`DELETE /v1/simulations/{id}`). A mutex stops two syncs running at once.
+- **Conflict policy**: Last write wins. A `404` means the item is already gone on the server, so the queued change is dropped. `401`/`403` keep the change queued and record the error. `408`, `429` and `5xx` are retried up to 5 times. Any other `4xx` marks the change as failed.
+- **Offline results**: Full simulation results are cached after the list loads (up to 30 stale items are prefetched), so a saved simulation can be reopened offline with an "Offline copy" note. A pending local rename is shown on top of the cached copy, and a pending delete hides it.
+- **Cached asset search**: Asset searches are stored by type and query. Offline, the same search returns its saved results, and a similar search filters earlier results by symbol or name (up to 25).
+- **Fallback rules**: The cache is used only when the device is offline or the server returns `5xx`. A `404` is never hidden by the cache.
+- **Tests**: 30 unit tests in `data/sync` cover the queue, retry and conflict rules, and the result and search caches (tag `PART3-ASH` in the code).
+- **Known limitations**: Re-running a simulation and deleting from the detail screen still need a connection. Offline search only covers assets searched before while online.
 
 ### Member 3 (David) — Real-Time Notifications & Localization
 - **Firebase Cloud Messaging (FCM)**: Integrated FCM push notification handlers for foreground and background push notification triggers.
@@ -92,7 +98,7 @@ Nominal vs. real value chart	Implemented	`PortfolioCanvasChart` — two-line Can
 Saved simulations (local)	Implemented	Room database stores simulations on-device; `SavedSimulationsScreen` lists and deletes them
 Navigation graph	Implemented, not yet wired to the app entry point	See Known Limitations
 REST API / cloud backend	Fully implemented and deployed, not yet merged into `main`	See REST API / Backend
-Biometric auth, offline sync, push notifications, multi-language	Not yet implemented	POE-only scope, not required for Part 2
+Biometric auth, offline sync, push notifications, multi-language	Implemented in Part 3	See Part 3 Team Contributions
 The three user-defined features built for Part 2 are the Simulation Builder, the nominal-vs-real Canvas chart, and local (Room) saved simulations — all under `data/engine/`, `ui/chart/`, and `data/local/`.
 Technologies Used
 Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` — nothing below is assumed.
