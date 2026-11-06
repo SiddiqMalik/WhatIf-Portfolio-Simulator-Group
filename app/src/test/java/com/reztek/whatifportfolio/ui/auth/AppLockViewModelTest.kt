@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.reztek.whatifportfolio.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -95,5 +96,103 @@ class AppLockViewModelTest {
         val state = viewModel.uiState.value
         assertEquals(AppLockViewModel.NO_PASSWORD_ACCOUNT_MESSAGE, state.passwordError)
         assertFalse(state.passwordLoading)
+    }
+
+    @Test
+    fun beginPrompt_refusesASecondPromptWhileOneIsOpen() {
+        assertTrue(viewModel.beginPrompt(BiometricPurpose.UNLOCK))
+        assertFalse(viewModel.beginPrompt(BiometricPurpose.UNLOCK))
+        assertFalse(viewModel.beginPrompt(BiometricPurpose.ENABLE_LOCK))
+    }
+
+    @Test
+    fun terminalErrorReleasesThePromptSoTheUserCanRetry() {
+        viewModel.beginPrompt(BiometricPurpose.UNLOCK)
+        viewModel.onBiometricError("Unlock cancelled.", false)
+
+        assertNull(viewModel.uiState.value.promptPurpose)
+        assertTrue(viewModel.beginPrompt(BiometricPurpose.UNLOCK))
+    }
+
+    @Test
+    fun notRecognisedKeepsThePromptOpenAndShowsAMessage() {
+        viewModel.beginPrompt(BiometricPurpose.UNLOCK)
+        viewModel.onBiometricNotRecognised()
+
+        val state = viewModel.uiState.value
+        assertEquals(BiometricPurpose.UNLOCK, state.promptPurpose)
+        assertEquals("Not recognised. Try again.", state.biometricMessage)
+    }
+
+    @Test
+    fun enablePrompt_successConfirmsWithoutUnlockingTheLockScreen() {
+        viewModel.decideLockAtLaunch(biometricEnabled = true, hasFirebaseSession = true)
+        viewModel.beginPrompt(BiometricPurpose.ENABLE_LOCK)
+
+        viewModel.onBiometricSuccess()
+
+        val state = viewModel.uiState.value
+        assertEquals(EnableLockResult.CONFIRMED, state.enableResult)
+        assertFalse(state.unlocked)
+        assertNull(state.promptPurpose)
+    }
+
+    @Test
+    fun enablePrompt_errorOrCancelMeansNotConfirmed() {
+        viewModel.beginPrompt(BiometricPurpose.ENABLE_LOCK)
+
+        viewModel.onBiometricError("Unlock cancelled.", false)
+
+        val state = viewModel.uiState.value
+        assertEquals(EnableLockResult.NOT_CONFIRMED, state.enableResult)
+        assertNull(state.biometricMessage)
+        assertNull(state.promptPurpose)
+    }
+
+    @Test
+    fun enablePrompt_notRecognisedIsIgnoredWhilePromptStaysOpen() {
+        viewModel.beginPrompt(BiometricPurpose.ENABLE_LOCK)
+
+        viewModel.onBiometricNotRecognised()
+
+        val state = viewModel.uiState.value
+        assertNull(state.biometricMessage)
+        assertNull(state.enableResult)
+        assertEquals(BiometricPurpose.ENABLE_LOCK, state.promptPurpose)
+    }
+
+    @Test
+    fun consumeEnableResult_clearsTheResult() {
+        viewModel.beginPrompt(BiometricPurpose.ENABLE_LOCK)
+        viewModel.onBiometricSuccess()
+
+        viewModel.consumeEnableResult()
+
+        assertNull(viewModel.uiState.value.enableResult)
+    }
+
+    @Test
+    fun startingANewEnablePromptClearsAnOldResult() {
+        viewModel.beginPrompt(BiometricPurpose.ENABLE_LOCK)
+        viewModel.onBiometricError("Unlock cancelled.", false)
+
+        viewModel.beginPrompt(BiometricPurpose.ENABLE_LOCK)
+
+        assertNull(viewModel.uiState.value.enableResult)
+    }
+
+    @Test
+    fun signOut_signsOutAndReleasesTheLockWithoutUnlocking() {
+        viewModel.decideLockAtLaunch(biometricEnabled = true, hasFirebaseSession = true)
+        viewModel.onBiometricError("Too many attempts.", true)
+
+        viewModel.signOut()
+
+        verify(exactly = 1) { auth.signOut() }
+        val state = viewModel.uiState.value
+        assertFalse(state.showLock)
+        assertFalse(state.unlocked)
+        assertFalse(state.showPasswordFallback)
+        assertNull(state.biometricMessage)
     }
 }

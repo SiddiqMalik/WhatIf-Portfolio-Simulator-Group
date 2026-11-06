@@ -228,22 +228,7 @@ class SimulationBuilderViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isRunning = true, runError = null, createdSimulationId = null) }
             try {
-                val request = CreateSimulationRequest(
-                    name = state.name.trim(),
-                    startDate = state.startDate,
-                    endDate = state.endDate,
-                    initialInvestment = state.initialInvestment.toDouble(),
-                    recurringContribution = state.recurringContribution.toDouble(),
-                    frequency = state.frequency,
-                    allocations = state.allocations.map {
-                        AllocationDto(
-                            symbol = it.symbol,
-                            type = it.type,
-                            percent = it.percent.toDouble(),
-                            name = it.name
-                        )
-                    }
-                )
+                val request = buildRequest(state)
                 var created = repository.createSimulation(request)
                 if (alsoSave) {
                     created = repository.updateSimulation(
@@ -304,7 +289,11 @@ class SimulationBuilderViewModel(
             try {
                 val start = LocalDate.parse(state.startDate, DateTimeFormatter.ISO_LOCAL_DATE)
                 val end = LocalDate.parse(state.endDate, DateTimeFormatter.ISO_LOCAL_DATE)
-                if (!end.isAfter(start)) errors["dates"] = "End date must be after start date."
+                if (!end.isAfter(start)) {
+                    errors["dates"] = "End date must be after start date."
+                } else if (start.isAfter(LocalDate.now())) {
+                    errors["dates"] = "Start date must not be in the future."
+                }
             } catch (_: Exception) {
                 errors["dates"] = "Use valid dates (YYYY-MM-DD)."
             }
@@ -323,6 +312,24 @@ class SimulationBuilderViewModel(
     }
 
     companion object {
+        fun buildRequest(state: SimulationBuilderUiState): CreateSimulationRequest =
+            CreateSimulationRequest(
+                name = state.name.trim(),
+                startDate = state.startDate,
+                endDate = state.endDate,
+                initialInvestment = state.initialInvestment.toDouble(),
+                recurringContribution = state.recurringContribution.toDouble(),
+                frequency = state.frequency,
+                allocations = state.allocations.map {
+                    AllocationDto(
+                        symbol = it.symbol,
+                        type = it.type,
+                        percent = it.percent.toDouble(),
+                        name = it.name
+                    )
+                }
+            )
+
         fun friendlyError(e: Exception): String {
             if (e is HttpException) {
                 val body = runCatching { e.response()?.errorBody()?.string() }.getOrNull()

@@ -2,6 +2,7 @@ package com.reztek.whatifportfolio.data.remote
 
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
+import java.io.IOException
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -16,7 +17,11 @@ class AuthInterceptor(
     override fun intercept(chain: Interceptor.Chain): Response {
         val user = auth.currentUser
         val request = if (user != null) {
-            val token = Tasks.await(user.getIdToken(false)).token
+            val token = try {
+                Tasks.await(user.getIdToken(false)).token
+            } catch (e: Exception) {
+                throw IOException("Couldn't get a Firebase ID token", e)
+            }
             chain.request().newBuilder()
                 .addHeader("Authorization", "Bearer $token")
                 .build()

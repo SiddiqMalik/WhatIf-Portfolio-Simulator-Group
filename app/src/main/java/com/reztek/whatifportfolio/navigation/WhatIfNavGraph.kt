@@ -14,6 +14,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.reztek.whatifportfolio.ui.auth.SignInScreen
 import com.reztek.whatifportfolio.ui.dashboard.DashboardScreen
 import com.reztek.whatifportfolio.ui.settings.SettingsScreen
+import com.reztek.whatifportfolio.ui.simulation.CompareResultRoute
 import com.reztek.whatifportfolio.ui.simulation.CompareRoute
 import com.reztek.whatifportfolio.ui.simulation.CompareSelectionRoute
 import com.reztek.whatifportfolio.ui.simulation.SavedSimulationsScreen
@@ -95,6 +96,9 @@ fun WhatIfNavGraph(
                     navController.navigate(Destination.SimulationBuilder.createRoute(id))
                 },
                 onCompare = {
+                    navController.navigate(Destination.CompareSelection.route) {
+                        launchSingleTop = true
+                    }
                     Log.d(TAG, "Navigating SavedSimulations -> CompareSelection")
                     navController.navigate(Destination.CompareSelection.route)
                 },
@@ -173,6 +177,8 @@ fun WhatIfNavGraph(
 
         composable(Destination.CompareSelection.route) {
             CompareSelectionRoute(
+                onCompareSelected = { firstId, secondId ->
+                    navController.navigate(Destination.CompareSimulation.createRoute(firstId, secondId))
                 onCompareSelected = { first, second ->
                     Log.d(TAG, "Navigating CompareSelection -> CompareSimulation")
                     navController.navigate(Destination.CompareSimulation.createRoute(first, second))
@@ -188,6 +194,11 @@ fun WhatIfNavGraph(
                 navArgument(Destination.CompareSimulation.ARG_SECOND_ID) { type = NavType.StringType }
             )
         ) { entry ->
+            val firstId = entry.arguments?.getString(Destination.CompareSimulation.ARG_FIRST_ID).orEmpty()
+            val secondId = entry.arguments?.getString(Destination.CompareSimulation.ARG_SECOND_ID).orEmpty()
+            CompareResultRoute(
+                firstKey = firstId,
+                secondKey = secondId,
             CompareRoute(
                 firstId = entry.arguments?.getString(Destination.CompareSimulation.ARG_FIRST_ID).orEmpty(),
                 secondId = entry.arguments?.getString(Destination.CompareSimulation.ARG_SECOND_ID).orEmpty(),
@@ -212,6 +223,12 @@ fun WhatIfNavGraph(
 }
 
 private fun NavHostController.navigateToBottomDestination(destination: BottomNavDestination) {
+    Log.d(TAG, "Bottom nav -> ${destination.label}")
+    val route = destination.destination.route
+    if (currentDestination?.route == route) return
+    if (destination == BottomNavDestination.HOME && popBackStack(route, inclusive = false)) return
+    navigate(route) {
+        popUpTo(Destination.Dashboard.route) { saveState = true }
     Log.d(TAG, "Bottom nav -> ${destination.name}")
     navigate(destination.destination.route) {
         popUpTo(graph.findStartDestination().id) { saveState = true }

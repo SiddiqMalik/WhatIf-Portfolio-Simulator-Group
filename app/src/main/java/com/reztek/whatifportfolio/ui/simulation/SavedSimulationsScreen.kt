@@ -278,6 +278,7 @@ fun SavedSimulationsScreen(
     onRerun: (String) -> Unit,
     onCompare: () -> Unit,
     onBottomNavSelected: (BottomNavDestination) -> Unit,
+    onCompare: () -> Unit = {},
     viewModel: SavedSimulationsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -363,6 +364,13 @@ fun SavedSimulationsScreen(
                     PrimaryActionButton(stringResource(R.string.action_retry), onClick = viewModel::refresh)
                 }
                 is SavedListUiState.Ready -> {
+                    if (state.items.size >= 2) {
+                        OutlinedButton(
+                            onClick = onCompare,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Compare simulations") }
+                        Spacer(Modifier.height(12.dp))
+                    }
                     OutlinedTextField(
                         value = state.query,
                         onValueChange = viewModel::onQueryChanged,

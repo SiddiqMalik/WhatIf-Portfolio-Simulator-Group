@@ -49,6 +49,15 @@ fun BiometricLockScreen(
     autoPrompt: Boolean = false,
     biometricAvailable: Boolean = true,
     showPasswordFallback: Boolean = false,
+    onShowPasswordFallbackChange: (Boolean) -> Unit = {},
+    onSignOut: () -> Unit = {}
+) {
+    var password by remember { mutableStateOf("") }
+
+    if (autoPrompt && biometricAvailable) {
+        LaunchedEffect(Unit) {
+            onUnlock()
+        }
     onShowPasswordFallbackChange: (Boolean) -> Unit = {}
 ) {
     // Never persisted across rotation on purpose: a typed password must not be saved.
@@ -69,6 +78,23 @@ fun BiometricLockScreen(
             Spacer(Modifier.height(12.dp))
             Text(stringResource(R.string.lock_title), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
+            Text(message ?: "Use your device biometrics to continue.", style = MaterialTheme.typography.bodyMedium)
+            if (errorMessage != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Spacer(Modifier.height(24.dp))
+            if (biometricAvailable) {
+                Button(onClick = onUnlock, modifier = Modifier.fillMaxWidth()) {
+                    Text("Unlock with biometrics")
+                }
+            }
+            TextButton(onClick = { onShowPasswordFallbackChange(!showPasswordFallback) }) {
+                Text(if (showPasswordFallback) "Hide password fallback" else "Use email password instead")
             Text(localized(message ?: stringResource(R.string.lock_message_default)), style = MaterialTheme.typography.bodyMedium)
             if (errorMessage != null) {
                 Spacer(Modifier.height(8.dp))
@@ -98,6 +124,11 @@ fun BiometricLockScreen(
                 )
                 if (passwordError != null) {
                     Spacer(Modifier.height(6.dp))
+                    Text(
+                        passwordError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                     Text(localized(passwordError), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
                 Spacer(Modifier.height(12.dp))
@@ -106,6 +137,10 @@ fun BiometricLockScreen(
                     enabled = password.isNotBlank() && !passwordLoading,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(if (passwordLoading) stringResource(R.string.lock_verifying) else stringResource(R.string.lock_unlock_password)) }
+            }
+            Spacer(Modifier.height(12.dp))
+            TextButton(onClick = onSignOut, enabled = !passwordLoading) {
+                Text("Sign out", color = MaterialTheme.colorScheme.error)
             }
         }
     }

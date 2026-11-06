@@ -5,6 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.reztek.whatifportfolio.data.auth.BIOMETRIC_NOT_RECOGNISED_MESSAGE
+import com.reztek.whatifportfolio.data.auth.BiometricGatePolicy
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import com.reztek.whatifportfolio.data.auth.BiometricGatePolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +18,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+enum class EnableLockResult { CONFIRMED, NOT_CONFIRMED }
+
 data class AppLockUiState(
     /** null until the once-per-launch decision has been made. */
     val lockAtLaunch: Boolean? = null,
@@ -21,6 +27,9 @@ data class AppLockUiState(
     val biometricMessage: String? = null,
     val showPasswordFallback: Boolean = false,
     val passwordError: String? = null,
+    val passwordLoading: Boolean = false,
+    val promptPurpose: BiometricPurpose? = null,
+    val enableResult: EnableLockResult? = null
     val passwordLoading: Boolean = false
 ) {
     val showLock: Boolean get() = BiometricGatePolicy.shouldShowLock(lockAtLaunch, unlocked)
@@ -47,6 +56,8 @@ class AppLockViewModel(
     private val _uiState = MutableStateFlow(AppLockUiState())
     val uiState: StateFlow<AppLockUiState> = _uiState.asStateFlow()
 
+    private var passwordJob: Job? = null
+
     /** Decides once per launch; later changes to the setting do not lock the current session. */
     fun decideLockAtLaunch(biometricEnabled: Boolean, hasFirebaseSession: Boolean) {
         _uiState.update { state ->
@@ -60,6 +71,80 @@ class AppLockViewModel(
         }
     }
 
+    fun beginPrompt(purpose: BiometricPurpose): Boolean {
+        var started = false
+        _uiState.update { state ->
+            if (state.promptPurpose != null) {
+                state
+            } else {
+                started = true
+                state.copy(
+                    promptPurpose = purpose,
+                    enableResult = if (purpose == BiometricPurpose.ENABLE_LOCK) null else state.enableResult
+                )
+            }
+        }
+        return started
+    }
+
+    fun onBiometricSuccess() {
+        _uiState.update { state ->
+            if (state.promptPurpose == BiometricPurpose.ENABLE_LOCK) {
+                Log.i(TAG, "Biometric confirmed for enabling the lock")
+                state.copy(promptPurpose = null, enableResult = EnableLockResult.CONFIRMED)
+            } else {
+                Log.i(TAG, "Unlocked with biometrics")
+                state.copy(
+                    promptPurpose = null,
+                    unlocked = true,
+                    biometricMessage = null,
+                    passwordError = null
+                )
+            }
+        }
+    }
+
+    fun onBiometricNotRecognised() {
+        _uiState.update { state ->
+            if (state.promptPurpose == BiometricPurpose.ENABLE_LOCK) {
+                state
+            } else {
+                state.copy(biometricMessage = BIOMETRIC_NOT_RECOGNISED_MESSAGE)
+            }
+        }
+    }
+
+    fun onBiometricError(message: String, openPasswordFallback: Boolean) {
+        _uiState.update { state ->
+            if (state.promptPurpose == BiometricPurpose.ENABLE_LOCK) {
+                state.copy(promptPurpose = null, enableResult = EnableLockResult.NOT_CONFIRMED)
+            } else {
+                state.copy(
+                    promptPurpose = null,
+                    biometricMessage = message,
+                    showPasswordFallback = state.showPasswordFallback || openPasswordFallback
+                )
+            }
+        }
+    }
+
+    fun consumeEnableResult() {
+        _uiState.update { it.copy(enableResult = null) }
+    }
+
+    fun signOut() {
+        Log.i(TAG, "User signed out from the lock screen")
+        passwordJob?.cancel()
+        auth.signOut()
+        _uiState.update {
+            it.copy(
+                lockAtLaunch = false,
+                unlocked = false,
+                promptPurpose = null,
+                biometricMessage = null,
+                showPasswordFallback = false,
+                passwordError = null,
+                passwordLoading = false
     fun onBiometricSuccess() {
         Log.i(TAG, "Unlocked with biometrics")
         _uiState.update { it.copy(unlocked = true, biometricMessage = null, passwordError = null) }
@@ -88,6 +173,8 @@ class AppLockViewModel(
             return
         }
         _uiState.update { it.copy(passwordLoading = true, passwordError = null) }
+        passwordJob?.cancel()
+        passwordJob = viewModelScope.launch {
         viewModelScope.launch {
             try {
                 user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
