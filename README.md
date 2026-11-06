@@ -28,6 +28,8 @@ The app lets a signed-in user enter a starting investment, a monthly contributio
 
 The three user-defined features built for Part 2 are the **Simulation Builder**, the **nominal-vs-real Canvas chart**, and **local (Room) saved simulations** — all under `data/engine/`, `ui/chart/`, and `data/local/`.
 
+Part 3 adds two more user-defined features: **Feature 4, Asset Comparison Matrix** (compare two saved simulations side by side) and **Feature 5, Local-First Data Management**, one of the innovative features in our Part 1 design document (see [Member 2](#member-2-ash--offline-storage--synchronisation-and-feature-5)).
+
 ## Technologies Used
 
 Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` — nothing below is assumed.
@@ -57,7 +59,8 @@ Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` 
 - **Biometric Error & Exception Handling**: Handled unsupported devices, un-enrolled states, cancellations, and failed attempts gracefully with appropriate logging.
 - **Asset Comparison Matrix (Feature 4)**: Implemented an interactive comparison UI enabling side-by-side evaluation of simulated asset performance metrics.
 
-### Member 2 (Ash) — Offline Storage & Synchronisation
+### Member 2 (Ash) — Offline Storage & Synchronisation, and Feature 5
+- **Feature 5: Local-First Data Management** (from the Part 1 design document): saved scenarios, full simulation results and asset searches are stored on the device, so the app keeps working with no connection and makes fewer network calls. Market price history is cached on the server only, not on the device.
 - **Local-first storage (RoomDB)**: The Saved list reads from a Room cache (`cached_simulations`), so it opens instantly and works with no network. Database migrations (v1 to v3) keep existing data when the schema changes.
 - **Offline rename and delete**: Renaming or deleting a saved simulation is applied locally straight away and queued with a sync status (`PENDING_UPDATE`, `PENDING_DELETE`, `FAILED_UPDATE`, `FAILED_DELETE`, `SYNCED`). The Saved screen shows an offline banner and a "Pending sync" chip on each queued item.
 - **Background sync (WorkManager)**: `SimulationSyncWorker` runs only when a network is available, retries with exponential backoff, and pushes queued changes to the hosted REST API (`PUT`/`DELETE /v1/simulations/{id}`). A mutex stops two syncs running at once.

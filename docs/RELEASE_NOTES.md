@@ -14,6 +14,7 @@ This release consolidates all team feature contributions, offline synchronisatio
 
 ## Member 2 Contributions (Ash) — Offline Persistence & Backend API
 - **Hosted REST API Integration**: Connected the app to the production cloud microservice (`https://whatif-api.vercel.app`).
+- **Feature 5, Local-First Data Management** (new in the final version): saved scenarios, full simulation results and asset searches are stored on the device, so the app keeps working offline and makes fewer network calls. This is one of the innovative features from our Part 1 design document.
 - **Offline Storage (RoomDB)**: The Saved list now reads from a Room cache, so it opens instantly and works without internet. Database migrations (v1 to v3) keep existing data.
 - **Offline rename and delete**: Changes are applied locally at once and queued. The Saved screen shows an offline banner and a "Pending sync" chip on queued items.
 - **Automatic background sync (WorkManager)**: Queued changes are sent to the REST API when a network returns, with retries and backoff. Conflicts are resolved by last write wins; a `404` drops the change.
