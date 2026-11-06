@@ -157,8 +157,6 @@ class ComparisonSimulationMapperTest {
 
         assertTrue(mapped.chartPoints.isEmpty())
     }
-<<<<<<< Updated upstream
-=======
 
     @Test
     fun localWithNoContributionsHasNoReturnPercent() {
@@ -217,5 +215,4 @@ class ComparisonSimulationMapperTest {
         assertTrue(local.contributedIsDerived)
         assertTrue(!remote.contributedIsDerived)
     }
->>>>>>> Stashed changes
 }

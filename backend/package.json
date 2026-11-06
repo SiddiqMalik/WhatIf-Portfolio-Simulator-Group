@@ -5,7 +5,8 @@
   "type": "module",
   "main": "local.js",
   "scripts": {
-    "start": "node --env-file=.env.local local.js"
+    "start": "node --env-file=.env.local local.js",
+    "test": "node --test"
   },
   "engines": {
     "node": "22.x"

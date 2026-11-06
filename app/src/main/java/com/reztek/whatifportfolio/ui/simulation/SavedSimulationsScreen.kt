@@ -23,6 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
@@ -183,6 +184,7 @@ fun SavedSimulationsScreen(
     onOpenSimulation: (String) -> Unit,
     onRerun: (String) -> Unit,
     onBottomNavSelected: (BottomNavDestination) -> Unit,
+    onCompare: () -> Unit = {},
     viewModel: SavedSimulationsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -227,6 +229,13 @@ fun SavedSimulationsScreen(
                     PrimaryActionButton("Retry", onClick = viewModel::refresh)
                 }
                 is SavedListUiState.Ready -> {
+                    if (state.items.size >= 2) {
+                        OutlinedButton(
+                            onClick = onCompare,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Compare simulations") }
+                        Spacer(Modifier.height(12.dp))
+                    }
                     OutlinedTextField(
                         value = state.query,
                         onValueChange = viewModel::onQueryChanged,

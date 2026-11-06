@@ -34,7 +34,7 @@ data class SettingsUiState(
  *    preferences instead of real-time listeners, reducing unnecessary
  *    database reads."
  */
-class SettingsViewModel(
+class SettingsViewModel @JvmOverloads constructor(
     application: Application,
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
