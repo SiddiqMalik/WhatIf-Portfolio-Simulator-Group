@@ -25,6 +25,8 @@ import com.reztek.whatifportfolio.ui.chart.ChartSeriesPoint
 import com.reztek.whatifportfolio.ui.chart.PortfolioCanvasChart
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.reztek.whatifportfolio.R
 
 /**
  * UI-ready data for comparing two saved simulations.
@@ -63,14 +65,14 @@ fun CompareSimulationScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "Simulation comparison",
+                        stringResource(R.string.compare_screen_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold
                     )
-                    TextButton(onClick = onBack) { Text("Back") }
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 }
                 Text(
-                    "Compare the saved outcomes and available projection timelines.",
+                    stringResource(R.string.compare_screen_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -82,41 +84,40 @@ fun CompareSimulationScreen(
                 }
             }
             item {
-                Text("Key metrics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.compare_key_metrics), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 MetricComparisonRow(
-                    "Total contributed", first, second,
+                    stringResource(R.string.compare_total_contributed), first, second,
                     firstValue = currency(first.totalContributed).withDerivedMark(first.contributedIsDerived),
                     secondValue = currency(second.totalContributed).withDerivedMark(second.contributedIsDerived)
                 )
                 Spacer(Modifier.height(8.dp))
-                MetricComparisonRow("Final value", first, second, currency(first.finalValue), currency(second.finalValue))
+                MetricComparisonRow(stringResource(R.string.compare_final_value), first, second, currency(first.finalValue), currency(second.finalValue))
                 Spacer(Modifier.height(8.dp))
                 MetricComparisonRow(
-                    "Real value", first, second,
-                    first.realValue?.let(currency) ?: NOT_AVAILABLE,
-                    second.realValue?.let(currency) ?: NOT_AVAILABLE
+                    stringResource(R.string.compare_real_value), first, second,
+                    first.realValue?.let(currency) ?: stringResource(R.string.not_available),
+                    second.realValue?.let(currency) ?: stringResource(R.string.not_available)
                 )
                 Spacer(Modifier.height(8.dp))
                 MetricComparisonRow(
-                    "Return", first, second,
-                    first.percentReturn?.let(::formatPercent) ?: NOT_AVAILABLE,
-                    second.percentReturn?.let(::formatPercent) ?: NOT_AVAILABLE
+                    stringResource(R.string.compare_return), first, second,
+                    first.percentReturn?.let(::formatPercent) ?: stringResource(R.string.not_available),
+                    second.percentReturn?.let(::formatPercent) ?: stringResource(R.string.not_available)
                 )
                 if (first.contributedIsDerived || second.contributedIsDerived) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "$DERIVED_MARK Calculated from the saved inputs (initial investment + monthly contribution " +
-                            "x 12 x years). It is not stored with the simulation.",
+                        "$DERIVED_MARK ${stringResource(R.string.compare_derived_note)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             item {
-                Text("Projection timelines", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.compare_timelines), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Each chart uses the timeline stored with that simulation. A chart is omitted when no timeline is available.",
+                    stringResource(R.string.compare_timelines_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -146,7 +147,7 @@ private fun SimulationSummaryCard(
             Text(simulation.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(simulation.dateRange, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(currency(simulation.finalValue), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-            Text("Final value", style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.compare_final_value), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -199,13 +200,13 @@ private fun ChartSection(
             Text(simulation.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             if (simulation.chartPoints.isEmpty()) {
                 Text(
-                    "No saved timeline is available for this simulation.",
+                    stringResource(R.string.compare_no_timeline),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Text(
-                    "Final: ${currency(simulation.finalValue)}",
+                    stringResource(R.string.compare_final_short, currency(simulation.finalValue)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -223,7 +224,6 @@ private fun ChartSection(
 /** Same locale as the Saved Simulations list, so amounts read identically across screens. */
 private val AppLocale: Locale = Locale("en", "ZA")
 
-private const val NOT_AVAILABLE = "Not available"
 private const val DERIVED_MARK = "*"
 
 private fun String.withDerivedMark(derived: Boolean): String = if (derived) "$this $DERIVED_MARK" else this

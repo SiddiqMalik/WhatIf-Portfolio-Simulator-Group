@@ -71,6 +71,7 @@ import com.reztek.whatifportfolio.data.preferences.SUPPORTED_CURRENCIES
 import com.reztek.whatifportfolio.data.preferences.SUPPORTED_LOCALES
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
 import com.reztek.whatifportfolio.ui.components.WhatIfBottomNavBar
+import com.reztek.whatifportfolio.ui.i18n.localized
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
 
@@ -107,7 +108,22 @@ fun SettingsScreen(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         Log.i(TAG, "POST_NOTIFICATIONS granted=$granted")
+        LocaleHelper.markNotificationPermissionAsked(context)
         viewModel.onNotificationsToggled(granted)
+    }
+
+    androidx.compose.runtime.LaunchedEffect(uiState.preferencesReady) {
+        if (!uiState.preferencesReady || !uiState.preferences.notificationsEnabled) return@LaunchedEffect
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@LaunchedEffect
+        if (LocaleHelper.notificationPermissionAsked(context)) return@LaunchedEffect
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            LocaleHelper.markNotificationPermissionAsked(context)
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     Scaffold(
@@ -160,10 +176,12 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SettingsToggleRow(
                         icon = Icons.Filled.Fingerprint,
-                        title = "Biometric app lock",
-                        subtitle = biometricSettingsSubtitle(
-                            biometricAvailability,
-                            uiState.preferences.biometricEnabled
+                        title = stringResource(R.string.settings_biometric_lock),
+                        subtitle = localized(
+                            biometricSettingsSubtitle(
+                                biometricAvailability,
+                                uiState.preferences.biometricEnabled
+                            )
                         ),
                         checked = uiState.preferences.biometricEnabled,
                         enabled = isBiometricToggleEnabled(
@@ -199,7 +217,11 @@ fun SettingsScreen(
                     SettingsRow(
                         icon = Icons.Filled.Language,
                         title = stringResource(R.string.settings_language),
-                        trailingText = LocaleHelper.displayNameFor(uiState.preferences.appLocale),
+                        trailingText = when (LocaleHelper.normalize(uiState.preferences.appLocale)) {
+                            LocaleHelper.AFRIKAANS -> stringResource(R.string.language_afrikaans)
+                            LocaleHelper.XHOSA -> stringResource(R.string.language_isixhosa)
+                            else -> stringResource(R.string.language_english)
+                        },
                         onClick = { showLanguagePicker = true }
                     )
                 }
@@ -288,12 +310,12 @@ private fun AccountHeader(name: String, email: String) {
         }
         Column(modifier = Modifier.padding(start = 14.dp)) {
             Text(
-                name.ifBlank { "Signed in" },
+                name.ifBlank { stringResource(R.string.settings_signed_in) },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                email.ifBlank { "Signed in with email" },
+                email.ifBlank { stringResource(R.string.settings_signed_in_email) },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
@@ -373,12 +395,14 @@ private fun SettingsToggleRow(
     subtitle: String? = null,
     enabled: Boolean = true
 ) {
+    val onLabel = stringResource(R.string.settings_on)
+    val offLabel = stringResource(R.string.settings_off)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .semantics(mergeDescendants = true) {
-                stateDescription = if (checked) "On" else "Off"
+                stateDescription = if (checked) onLabel else offLabel
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -454,6 +478,7 @@ private fun LanguagePickerDialog(
         title = { Text(stringResource(R.string.language_picker_title)) },
         text = {
             Column {
+                val selectedTag = LocaleHelper.normalize(selected)
                 SUPPORTED_LOCALES.forEach { option ->
                     val label = when (option.tag) {
                         "af" -> stringResource(R.string.language_afrikaans)
@@ -468,7 +493,7 @@ private fun LanguagePickerDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(label, modifier = Modifier.weight(1f))
-                        if (option.tag == selected) {
+                        if (option.tag == selectedTag) {
                             Icon(
                                 imageVector = Icons.Filled.ChevronRight,
                                 contentDescription = null,

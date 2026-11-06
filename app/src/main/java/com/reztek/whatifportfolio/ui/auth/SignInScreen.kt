@@ -55,6 +55,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.ui.theme.NavyDeep
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
+import com.reztek.whatifportfolio.ui.i18n.localized
 
 private const val TAG = "SignInScreen"
 
@@ -127,8 +128,7 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "See what a regular investment strategy would have " +
-                    "been worth — and how it stacks up against inflation.",
+                text = stringResource(R.string.sign_in_hero),
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center
@@ -178,9 +178,9 @@ fun SignInScreen(
                                 Icons.Filled.Visibility
                             },
                             contentDescription = if (passwordVisible) {
-                                "Hide password"
+                                stringResource(R.string.cd_hide_password)
                             } else {
-                                "Show password"
+                                stringResource(R.string.cd_show_password)
                             }
                         )
                     }
@@ -258,7 +258,7 @@ fun SignInScreen(
             if (uiState is SignInUiState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = (uiState as SignInUiState.Error).message,
+                    text = localized((uiState as SignInUiState.Error).message),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
@@ -268,7 +268,7 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "By continuing you agree to the Terms of Service and Privacy Policy.",
+                text = stringResource(R.string.sign_in_terms),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center

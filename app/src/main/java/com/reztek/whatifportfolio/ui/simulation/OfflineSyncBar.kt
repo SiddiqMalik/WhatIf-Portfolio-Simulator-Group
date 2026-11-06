@@ -19,7 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.data.local.SyncStatus
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
 import com.reztek.whatifportfolio.ui.theme.WarningAmber
@@ -48,7 +50,7 @@ fun OfflineCopyBanner(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Offline - showing the copy saved on this device.",
+            text = stringResource(R.string.offline_cached_copy),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -68,10 +70,10 @@ fun OfflineSyncBar(
 ) {
     if (isOnline && unsyncedCount == 0) return
 
-    val waiting = if (unsyncedCount == 1) "1 change waiting to sync" else "$unsyncedCount changes waiting to sync"
+    val waiting = androidx.compose.ui.res.pluralStringResource(R.plurals.sync_changes_waiting, unsyncedCount, unsyncedCount)
     val message = when {
-        !isOnline && unsyncedCount > 0 -> "Offline - $waiting. They sync automatically when you reconnect."
-        !isOnline -> "Offline - showing saved simulations. Changes sync when you reconnect."
+        !isOnline && unsyncedCount > 0 -> stringResource(R.string.offline_waiting_sync, waiting)
+        !isOnline -> stringResource(R.string.offline_saved_list)
         else -> waiting
     }
     val color = if (isOnline) TealPrimary else WarningAmber
@@ -92,7 +94,7 @@ fun OfflineSyncBar(
             color = MaterialTheme.colorScheme.onSurface
         )
         if (isOnline && unsyncedCount > 0) {
-            TextButton(onClick = onSyncNow) { Text("Sync now") }
+            TextButton(onClick = onSyncNow) { Text(stringResource(R.string.action_sync_now)) }
         }
     }
 }
@@ -107,20 +109,20 @@ fun RenameDialog(
     var text by remember(currentName) { mutableStateOf(currentName) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename simulation") },
+        title = { Text(stringResource(R.string.rename_simulation)) },
         text = {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
                 singleLine = true,
-                label = { Text("Name") }
+                label = { Text(stringResource(R.string.label_name)) }
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) { Text("Save") }
+            TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
         }
     )
 }

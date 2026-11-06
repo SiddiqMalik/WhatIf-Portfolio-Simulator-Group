@@ -33,17 +33,15 @@ object NotificationIntentParser {
 fun ensureSimulationNotificationChannel(context: Context) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
     val manager = context.getSystemService(NotificationManager::class.java) ?: return
-    val existing = manager.getNotificationChannel(CHANNEL_SIMULATIONS)
-    if (existing != null) return
     val channel = NotificationChannel(
         CHANNEL_SIMULATIONS,
         context.getString(R.string.notification_channel_simulations),
-        NotificationManager.IMPORTANCE_DEFAULT
+        NotificationManager.IMPORTANCE_HIGH
     ).apply {
         description = context.getString(R.string.notification_channel_simulations_desc)
     }
     manager.createNotificationChannel(channel)
-    Log.i(TAG, "Created notification channel $CHANNEL_SIMULATIONS")
+    Log.i(TAG, "Ensured notification channel $CHANNEL_SIMULATIONS")
 }
 
 fun showSimulationReadyNotification(
@@ -70,7 +68,7 @@ fun showSimulationReadyNotification(
         .setContentText(body)
         .setAutoCancel(true)
         .setContentIntent(pending)
-        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
         .build()
 
     try {

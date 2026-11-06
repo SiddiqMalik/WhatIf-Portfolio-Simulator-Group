@@ -26,7 +26,11 @@ class WhatIfApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        appContext = this
         Log.i(TAG, "Application onCreate")
+        // Apply the saved language before the first activity so Compose
+        // resources are already English, Afrikaans, or isiXhosa.
+        LocaleHelper.applyStoredLocale(this)
         FirebaseApp.initializeApp(this)
         ensureSimulationNotificationChannel(this)
 
@@ -40,8 +44,16 @@ class WhatIfApplication : Application() {
                 val prefs = UserPreferencesRepository(this@WhatIfApplication)
                     .userPreferencesFlow
                     .first()
-                LocaleHelper.applyAppLocale(prefs.appLocale)
+                val wanted = LocaleHelper.normalize(prefs.appLocale)
+                if (LocaleHelper.storedTagOrNull(this@WhatIfApplication) != wanted) {
+                    LocaleHelper.applyAppLocale(this@WhatIfApplication, wanted)
+                }
             }.onFailure { Log.e(TAG, "Failed to restore locale", it) }
         }
+    }
+
+    companion object {
+        lateinit var appContext: android.content.Context
+            private set
     }
 }

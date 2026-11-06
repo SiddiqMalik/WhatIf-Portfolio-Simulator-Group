@@ -9,8 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.data.auth.BIOMETRIC_NOT_RECOGNISED_MESSAGE
 import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.auth.biometricErrorMessage
@@ -69,13 +71,16 @@ fun rememberBiometricPrompt(
         }
     }
 
-    val promptInfo = remember {
+    val promptTitle = stringResource(R.string.biometric_prompt_title)
+    val promptSubtitle = stringResource(R.string.biometric_prompt_subtitle)
+    val promptCancel = stringResource(R.string.action_cancel)
+    val promptInfo = remember(promptTitle, promptSubtitle, promptCancel) {
         BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock WhatIf Portfolio")
-            .setSubtitle("Confirm your identity to continue")
+            .setTitle(promptTitle)
+            .setSubtitle(promptSubtitle)
             // Same constant the availability check uses, so Settings and the prompt agree.
             .setAllowedAuthenticators(BiometricStatus.REQUIRED_AUTHENTICATORS)
-            .setNegativeButtonText("Cancel")
+            .setNegativeButtonText(promptCancel)
             .build()
     }
 
@@ -84,7 +89,7 @@ fun rememberBiometricPrompt(
             if (prompt == null) {
                 Log.e(TAG, "Cannot show biometric prompt: host is not a FragmentActivity")
                 latestOnError(
-                    "Biometrics are unavailable. Use your password instead.",
+                    context.getString(R.string.biometric_error_unavailable),
                     true
                 )
             } else {
