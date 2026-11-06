@@ -27,7 +27,7 @@ object NotificationIntentParser {
         extras?.get(EXTRA_SIMULATION_ID)?.takeIf { it.isNotBlank() }
 
     fun simulationIdFromIntent(intent: Intent?): String? =
-        intent?.getStringExtra(EXTRA_SIMULATION_ID)?.takeIf { it.isNotBlank() }
+        intent?.extras?.getString(EXTRA_SIMULATION_ID)?.trim()?.takeIf { it.isNotBlank() }
 }
 
 fun ensureSimulationNotificationChannel(context: Context) {

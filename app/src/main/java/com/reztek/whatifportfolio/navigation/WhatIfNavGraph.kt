@@ -17,6 +17,7 @@ import com.reztek.whatifportfolio.ui.simulation.CompareRoute
 import com.reztek.whatifportfolio.ui.simulation.CompareSelectionRoute
 import com.reztek.whatifportfolio.ui.simulation.SavedSimulationsScreen
 import com.reztek.whatifportfolio.ui.simulation.SimulationBuilderScreen
+import com.reztek.whatifportfolio.notifications.NotificationPermissionPrompt
 import com.reztek.whatifportfolio.ui.simulation.SimulationDetailScreen
 import com.reztek.whatifportfolio.ui.simulation.SimulationResultsScreen
 
@@ -29,6 +30,8 @@ fun WhatIfNavGraph(
     pendingSimulationId: String? = null,
     onPendingSimulationConsumed: () -> Unit = {}
 ) {
+    NotificationPermissionPrompt()
+
     val startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
         Log.d(TAG, "Existing Firebase session found — starting at Dashboard")
         Destination.Dashboard.route

@@ -109,7 +109,7 @@
     <string name="error_add_asset">Add at least one asset.</string>
     <string name="error_allocations_total">Allocations must total 100%% (currently %1$s%%).</string>
     <string name="error_allocation_percent">Allocation percentages must be 0 or more.</string>
-    <string name="error_run_requirements">Add a name, assets totaling 100%%, and valid dates to run.</string>
+    <string name="error_run_requirements">Add a name, assets totaling 100%, and valid dates to run.</string>
     <string name="error_sign_in_again">Please sign in again to run simulations.</string>
     <string name="error_market_data">Market data provider failed. Try again in a moment.</string>
     <string name="error_run_http">Couldn\'t run the simulation (HTTP %1$s).</string>
@@ -156,8 +156,8 @@
     <string name="label_initial_investment">Initial investment (%1$s)</string>
     <string name="label_monthly_contribution">Monthly contribution (%1$s)</string>
     <string name="label_recurring_contribution">Recurring contribution (%1$s)</string>
-    <string name="label_return_rate">Return rate (%%)</string>
-    <string name="label_inflation">Inflation (%%)</string>
+    <string name="label_return_rate">Return rate (%)</string>
+    <string name="label_inflation">Inflation (%)</string>
     <string name="label_time_horizon">Time horizon: %1$d years</string>
     <string name="label_projected_values">Projected nominal: %1$s%2$.2f  ·  Real: %3$s%4$.2f</string>
     <string name="label_contribution_frequency">Contribution frequency</string>
@@ -168,8 +168,8 @@
     <string name="label_end_date">End date</string>
     <string name="label_allocations">Allocations</string>
     <string name="label_allocation_total">Total %1$.1f%%</string>
-    <string name="builder_empty_allocations">Add equities or crypto and set percentages to 100%% before running.</string>
-    <string name="label_percent">%%</string>
+    <string name="builder_empty_allocations">Add equities or crypto and set percentages to 100% before running.</string>
+    <string name="label_percent">%</string>
     <string name="saved_title">Saved simulations</string>
     <string name="label_search">Search</string>
     <string name="placeholder_asset_search">e.g. AAPL, bitcoin</string>

@@ -69,8 +69,11 @@ fun CompareSimulationScreen(
                 ) {
                     Text(
                         stringResource(R.string.compare_screen_title),
+                        modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 }

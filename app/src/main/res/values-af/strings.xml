@@ -103,7 +103,7 @@
     <string name="error_add_asset">Voeg ten minste een bate by.</string>
     <string name="error_allocations_total">Toewysings moet 100%% wees (tans %1$s%%).</string>
     <string name="error_allocation_percent">Toewysingspersentasies moet 0 of meer wees.</string>
-    <string name="error_run_requirements">Voeg \'n naam, bates wat 100%% is, en geldige datums by om te loop.</string>
+    <string name="error_run_requirements">Voeg \'n naam, bates wat 100% is, en geldige datums by om te loop.</string>
     <string name="error_sign_in_again">Teken asseblief weer in om simulasies te loop.</string>
     <string name="error_market_data">Die markdataverskaffer het misluk. Probeer oor \'n oomblik weer.</string>
     <string name="error_run_http">Kon nie die simulasie loop nie (HTTP %1$s).</string>
@@ -150,8 +150,8 @@
     <string name="label_initial_investment">Aanvanklike belegging (%1$s)</string>
     <string name="label_monthly_contribution">Maandelikse bydrae (%1$s)</string>
     <string name="label_recurring_contribution">Herhalende bydrae (%1$s)</string>
-    <string name="label_return_rate">Opbrengskoers (%%)</string>
-    <string name="label_inflation">Inflasie (%%)</string>
+    <string name="label_return_rate">Opbrengskoers (%)</string>
+    <string name="label_inflation">Inflasie (%)</string>
     <string name="label_time_horizon">Tydhorison: %1$d jaar</string>
     <string name="label_projected_values">Geprojekteerde nominaal: %1$s%2$.2f  ·  Reële: %3$s%4$.2f</string>
     <string name="label_contribution_frequency">Bydraefrekwensie</string>
@@ -162,8 +162,8 @@
     <string name="label_end_date">Einddatum</string>
     <string name="label_allocations">Toewysings</string>
     <string name="label_allocation_total">Totaal %1$.1f%%</string>
-    <string name="builder_empty_allocations">Voeg aandele of kripto by en stel persentasies op 100%% voordat jy loop.</string>
-    <string name="label_percent">%%</string>
+    <string name="builder_empty_allocations">Voeg aandele of kripto by en stel persentasies op 100% voordat jy loop.</string>
+    <string name="label_percent">%</string>
     <string name="saved_title">Gestoorde simulasies</string>
     <string name="label_search">Soek</string>
     <string name="placeholder_asset_search">bv. AAPL, bitcoin</string>

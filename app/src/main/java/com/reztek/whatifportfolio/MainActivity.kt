@@ -23,6 +23,7 @@ import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.preferences.UserPreferences
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
 import com.reztek.whatifportfolio.navigation.WhatIfNavGraph
+import com.reztek.whatifportfolio.notifications.EXTRA_SIMULATION_ID
 import com.reztek.whatifportfolio.notifications.NotificationIntentParser
 import com.reztek.whatifportfolio.notifications.ensureSimulationNotificationChannel
 import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "onCreate")
         ensureSimulationNotificationChannel(this)
         enableEdgeToEdge()
-        pendingSimulationId = NotificationIntentParser.simulationIdFromIntent(intent)
+        captureNotificationIntent(intent)
 
         biometricPrompter = BiometricPrompter(this, appLockViewModel)
 
@@ -118,8 +119,8 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingSimulationId = NotificationIntentParser.simulationIdFromIntent(intent)
-        Log.i(TAG, "onNewIntent simulationId=$pendingSimulationId")
+        Log.i(TAG, "onNewIntent extras=${intent.extras?.keySet()}")
+        captureNotificationIntent(intent)
     }
 
     override fun onStart() {
@@ -129,7 +130,23 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // A background notification tap can resume this activity with the
+        // simulationId extra and skip onNewIntent on some devices.
+        captureNotificationIntent(intent)
         Log.d(TAG, "onResume")
+    }
+
+    /**
+     * Background and closed taps are shown by Android itself. The tap only
+     * delivers the FCM data payload, so the simulation id has to be read
+     * from this activity's intent. The extra is removed so a later resume
+     * does not open the same results again.
+     */
+    private fun captureNotificationIntent(source: Intent?) {
+        val id = NotificationIntentParser.simulationIdFromIntent(source) ?: return
+        source?.removeExtra(EXTRA_SIMULATION_ID)
+        pendingSimulationId = id
+        Log.i(TAG, "Opening results from notification simulationId=$id")
     }
 
     override fun onPause() {

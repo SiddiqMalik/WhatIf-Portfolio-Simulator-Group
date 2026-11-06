@@ -103,7 +103,7 @@
     <string name="error_add_asset">Yongeza ubuncinane impahla enye.</string>
     <string name="error_allocations_total">Ukwabiwa kufuneka kube yi-100%% (ngoku %1$s%%).</string>
     <string name="error_allocation_percent">Iipesenti zokwabiwa kufuneka zibe ngu-0 okanye ngaphezulu.</string>
-    <string name="error_run_requirements">Yongeza igama, iimpahla ezizi-100%%, nemihla esebenzayo ukuze uqhube.</string>
+    <string name="error_run_requirements">Yongeza igama, iimpahla ezizi-100%, nemihla esebenzayo ukuze uqhube.</string>
     <string name="error_sign_in_again">Nceda ungene kwakhona ukuze uqhube iisimulations.</string>
     <string name="error_market_data">Umboneleli wedatha yemarike usilele. Zama kwakhona ngomzuzu.</string>
     <string name="error_run_http">Ayikwazanga ukuqhuba isimulations (HTTP %1$s).</string>
@@ -150,8 +150,8 @@
     <string name="label_initial_investment">Utyalo-mali lokuqala (%1$s)</string>
     <string name="label_monthly_contribution">Igalelo lenyanga (%1$s)</string>
     <string name="label_recurring_contribution">Igalelo eliphindaphindwayo (%1$s)</string>
-    <string name="label_return_rate">Ireyithi yembuyekezo (%%)</string>
-    <string name="label_inflation">Inflation (%%)</string>
+    <string name="label_return_rate">Ireyithi yembuyekezo (%)</string>
+    <string name="label_inflation">Inflation (%)</string>
     <string name="label_time_horizon">Ixesha: iminyaka eyi-%1$d</string>
     <string name="label_projected_values">Uqikelelo olungacwangciswanga: %1$s%2$.2f  ·  Okwenene: %3$s%4$.2f</string>
     <string name="label_contribution_frequency">Ukuphindaphinda kwegalelo</string>
@@ -162,8 +162,8 @@
     <string name="label_end_date">Umhla wokuphela</string>
     <string name="label_allocations">Ukwabiwa</string>
     <string name="label_allocation_total">Iyonke %1$.1f%%</string>
-    <string name="builder_empty_allocations">Yongeza izabelo okanye i-crypto uze usete iipesenti kwi-100%% phambi kokuqhuba.</string>
-    <string name="label_percent">%%</string>
+    <string name="builder_empty_allocations">Yongeza izabelo okanye i-crypto uze usete iipesenti kwi-100% phambi kokuqhuba.</string>
+    <string name="label_percent">%</string>
     <string name="saved_title">Iisimulations ezigciniweyo</string>
     <string name="label_search">Khangela</string>
     <string name="placeholder_asset_search">umz. AAPL, bitcoin</string>
