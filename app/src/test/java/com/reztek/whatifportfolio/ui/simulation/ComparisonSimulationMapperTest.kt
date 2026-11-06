@@ -215,4 +215,43 @@ class ComparisonSimulationMapperTest {
         assertTrue(local.contributedIsDerived)
         assertTrue(!remote.contributedIsDerived)
     }
+
+    @Test
+    fun localTotalContributed_isMarkedDerived_remoteIsNot() {
+        val local = ComparisonSimulationMapper.fromLocal(
+            SavedSimulationEntity(
+                id = 1L,
+                title = "Local",
+                initialInvestment = 500.0,
+                monthlyContribution = 50.0,
+                returnRate = 7.0,
+                inflationRate = 4.0,
+                years = 1,
+                finalNominalValue = 1200.0,
+                finalRealValue = 1150.0,
+                createdAt = 0L
+            )
+        )
+        val remote = ComparisonSimulationMapper.fromRemote(
+            SimulationDto(
+                id = "r1",
+                name = "Remote",
+                startDate = "2026-01-01",
+                endDate = "2027-01-01",
+                initialInvestment = 500.0,
+                recurringContribution = 50.0,
+                status = "completed",
+                totalContributed = 1100.0,
+                finalValue = 1200.0,
+                profitLoss = 100.0,
+                percentReturn = 9.09,
+                createdAt = "2026-01-01T00:00:00Z",
+                updatedAt = "2026-01-01T00:00:00Z"
+            )
+        )
+
+        assertEquals(1100.0, local.totalContributed, 0.001)
+        assertTrue(local.contributedIsDerived)
+        assertTrue(!remote.contributedIsDerived)
+    }
 }

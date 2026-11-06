@@ -1,5 +1,6 @@
 package com.reztek.whatifportfolio
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -15,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.auth.FirebaseAuth
 import com.reztek.whatifportfolio.data.auth.BiometricAvailability
@@ -22,6 +24,8 @@ import com.reztek.whatifportfolio.data.auth.BiometricStatus
 import com.reztek.whatifportfolio.data.preferences.UserPreferences
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
 import com.reztek.whatifportfolio.navigation.WhatIfNavGraph
+import com.reztek.whatifportfolio.notifications.NotificationIntentParser
+import com.reztek.whatifportfolio.notifications.ensureSimulationNotificationChannel
 import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
 import com.reztek.whatifportfolio.ui.auth.BiometricLockScreen
 import com.reztek.whatifportfolio.ui.auth.BiometricPrompter
@@ -33,9 +37,14 @@ import kotlinx.coroutines.flow.map
 private const val TAG = "MainActivity"
 
 /**
- * Single-Activity host for the whole Compose UI.
+ * Single-Activity host. Handles FCM tap deep-links — PART3-DAVID.
  */
-class MainActivity : FragmentActivity() {
+class MainActivity : AppCompatActivity() {
+
+    // Survives rotation (so no re-lock) but not process death (so a restored app re-locks).
+    private val appLockViewModel: AppLockViewModel by viewModels()
+
+    private var pendingSimulationId by mutableStateOf<String?>(null)
 
     // Survives rotation (so no re-lock) but not process death (so a restored app re-locks).
     private val appLockViewModel: AppLockViewModel by viewModels()
@@ -47,7 +56,9 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i(TAG, "onCreate")
+        ensureSimulationNotificationChannel(this)
         enableEdgeToEdge()
+        pendingSimulationId = NotificationIntentParser.simulationIdFromIntent(intent)
 
         biometricPrompter = BiometricPrompter(this, appLockViewModel)
 
@@ -99,10 +110,64 @@ class MainActivity : FragmentActivity() {
                         } else {
                             WhatIfNavGraph()
                         }
+            val lockState by appLockViewModel.uiState.collectAsStateWithLifecycle()
+
+            // Decide ONCE per launch. Enabling the toggle later in Settings does not
+            // lock the current session; it applies from the next fresh launch.
+            LaunchedEffect(preferences != null) {
+                val loaded = preferences
+                if (loaded != null) {
+                    appLockViewModel.decideLockAtLaunch(
+                        biometricEnabled = loaded.biometricEnabled,
+                        hasFirebaseSession = FirebaseAuth.getInstance().currentUser != null
+                    )
+                }
+            }
+
+            WhatIfPortfolioTheme(darkTheme = preferences?.useDarkTheme ?: false) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    if (preferences == null || lockState.lockAtLaunch == null) {
+                        // Keep the initial surface blank while preferences and the
+                        // launch decision load, so the app is never revealed early.
+                    } else if (lockState.showLock) {
+                        val availability = remember { BiometricStatus.checkAvailability(this@MainActivity) }
+                        val biometricAvailable = availability == BiometricAvailability.Available
+                        val prompt = rememberBiometricPrompt(
+                            onAuthenticated = appLockViewModel::onBiometricSuccess,
+                            onAuthenticationError = appLockViewModel::onBiometricError
+                        )
+                        BiometricLockScreen(
+                            onUnlock = prompt,
+                            onPasswordUnlock = appLockViewModel::onPasswordSubmitted,
+                            message = if (biometricAvailable) {
+                                "Use your device biometrics to continue, or verify your account password."
+                            } else {
+                                "Strong biometrics are currently unavailable. Verify your account password to continue."
+                            },
+                            errorMessage = lockState.biometricMessage,
+                            passwordError = lockState.passwordError,
+                            passwordLoading = lockState.passwordLoading,
+                            autoPrompt = biometricAvailable,
+                            biometricAvailable = biometricAvailable,
+                            showPasswordFallback = lockState.showPasswordFallback,
+                            onShowPasswordFallbackChange = appLockViewModel::onShowPasswordFallbackChange
+                        )
+                    } else {
+                        WhatIfNavGraph(
+                            pendingSimulationId = pendingSimulationId,
+                            onPendingSimulationConsumed = { pendingSimulationId = null }
+                        )
                     }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingSimulationId = NotificationIntentParser.simulationIdFromIntent(intent)
+        Log.i(TAG, "onNewIntent simulationId=$pendingSimulationId")
     }
 
     override fun onStart() {

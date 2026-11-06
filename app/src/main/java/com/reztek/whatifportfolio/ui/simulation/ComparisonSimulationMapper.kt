@@ -30,6 +30,8 @@ object ComparisonSimulationMapper {
             // Derived, not stored: same formula as SimulationEngine
             // (initial + monthly x 12 x years). Room keeps only the inputs.
             totalContributed = totalContributed,
+            totalContributed = entity.initialInvestment +
+                (entity.monthlyContribution * entity.years * 12),
             contributedIsDerived = true,
             finalValue = entity.finalNominalValue,
             realValue = entity.finalRealValue,

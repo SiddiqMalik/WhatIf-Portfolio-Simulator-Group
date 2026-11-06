@@ -18,6 +18,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +28,8 @@ import com.reztek.whatifportfolio.ui.chart.ChartSeriesPoint
 import com.reztek.whatifportfolio.ui.chart.PortfolioCanvasChart
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.reztek.whatifportfolio.R
 
 /**
  * UI-ready data for comparing two saved simulations.
@@ -42,6 +45,7 @@ data class ComparisonSimulation(
     val realValue: Double?,
     val percentReturn: Double?,
     val chartPoints: List<ChartSeriesPoint>,
+    /** True when [totalContributed] is calculated from saved inputs rather than stored. */
     val contributedIsDerived: Boolean = false
 )
 
@@ -64,14 +68,14 @@ fun CompareSimulationScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "Simulation comparison",
+                        stringResource(R.string.compare_screen_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold
                     )
-                    TextButton(onClick = onBack) { Text("Back") }
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
                 }
                 Text(
-                    "Compare the saved outcomes and available projection timelines.",
+                    stringResource(R.string.compare_screen_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -83,7 +87,7 @@ fun CompareSimulationScreen(
                 }
             }
             item {
-                Text("Key metrics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.compare_key_metrics), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 ComparisonHighlights.summary(first, second)?.let { summary ->
                     SummaryLine(summaryText(summary, first, second, currency))
@@ -130,21 +134,41 @@ fun CompareSimulationScreen(
                         { formatPercent(it) },
                         unit = " pts"
                     )
+                MetricComparisonRow(
+                    stringResource(R.string.compare_total_contributed), first, second,
+                    firstValue = currency(first.totalContributed).withDerivedMark(first.contributedIsDerived),
+                    secondValue = currency(second.totalContributed).withDerivedMark(second.contributedIsDerived)
+                )
+                Spacer(Modifier.height(8.dp))
+                MetricComparisonRow(stringResource(R.string.compare_final_value), first, second, currency(first.finalValue), currency(second.finalValue))
+                Spacer(Modifier.height(8.dp))
+                MetricComparisonRow(
+                    stringResource(R.string.compare_real_value), first, second,
+                    first.realValue?.let(currency) ?: stringResource(R.string.not_available),
+                    second.realValue?.let(currency) ?: stringResource(R.string.not_available)
+                )
+                Spacer(Modifier.height(8.dp))
+                MetricComparisonRow(
+                    stringResource(R.string.compare_return), first, second,
+                    first.percentReturn?.let(::formatPercent) ?: stringResource(R.string.not_available),
+                    second.percentReturn?.let(::formatPercent) ?: stringResource(R.string.not_available)
                 )
                 if (first.contributedIsDerived || second.contributedIsDerived) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "$DERIVED_MARK Calculated from the saved inputs (initial investment + monthly contribution " +
                             "x 12 x years). It is not stored with the simulation.",
+                        "$DERIVED_MARK ${stringResource(R.string.compare_derived_note)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             item {
-                Text("Projection timelines", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.compare_timelines), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Cloud simulations use their stored timeline. Local simulations are recalculated from their saved inputs. A chart is omitted when no timeline is available.",
+                    stringResource(R.string.compare_timelines_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -174,7 +198,7 @@ private fun SimulationSummaryCard(
             Text(simulation.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(simulation.dateRange, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(currency(simulation.finalValue), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-            Text("Final value", style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.compare_final_value), style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -204,6 +228,7 @@ private fun MetricComparisonRow(
     secondValue: String,
     winner: ComparisonWinner = ComparisonWinner.NONE,
     differenceText: String? = null
+    secondValue: String
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -223,6 +248,12 @@ private fun MetricComparisonRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            // The metric name appears once; each column is labelled with its own simulation.
+            Text(metric, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MetricColumn(first.title, firstValue, Modifier.weight(1f))
+                MetricColumn(second.title, secondValue, Modifier.weight(1f))
             }
         }
     }
@@ -241,6 +272,8 @@ private fun MetricColumn(
         Modifier
     }
     Column(modifier.then(highlight).padding(8.dp)) {
+private fun MetricColumn(simulationTitle: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
         Text(
             simulationTitle,
             style = MaterialTheme.typography.labelMedium,
@@ -262,6 +295,7 @@ private fun MetricColumn(
                 color = MaterialTheme.colorScheme.primary
             )
         }
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -275,13 +309,13 @@ private fun ChartSection(
             Text(simulation.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             if (simulation.chartPoints.isEmpty()) {
                 Text(
-                    "No saved timeline is available for this simulation.",
+                    stringResource(R.string.compare_no_timeline),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Text(
-                    "Final: ${currency(simulation.finalValue)}",
+                    stringResource(R.string.compare_final_short, currency(simulation.finalValue)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -335,6 +369,6 @@ private fun summaryText(
 
 @Composable
 private fun rememberCurrencyFormatter(): (Double) -> String {
-    val formatter = NumberFormat.getCurrencyInstance()
+    val formatter = remember { NumberFormat.getCurrencyInstance(AppLocale) }
     return { amount -> formatter.format(amount) }
 }

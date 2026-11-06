@@ -2,6 +2,8 @@ package com.reztek.whatifportfolio.navigation
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -13,6 +15,7 @@ import com.reztek.whatifportfolio.ui.auth.SignInScreen
 import com.reztek.whatifportfolio.ui.dashboard.DashboardScreen
 import com.reztek.whatifportfolio.ui.settings.SettingsScreen
 import com.reztek.whatifportfolio.ui.simulation.CompareResultRoute
+import com.reztek.whatifportfolio.ui.simulation.CompareRoute
 import com.reztek.whatifportfolio.ui.simulation.CompareSelectionRoute
 import com.reztek.whatifportfolio.ui.simulation.SavedSimulationsScreen
 import com.reztek.whatifportfolio.ui.simulation.SimulationBuilderScreen
@@ -23,7 +26,10 @@ private const val TAG = "WhatIfNavGraph"
 
 @Composable
 fun WhatIfNavGraph(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    // PART3-DAVID: deep-link from FCM tap
+    pendingSimulationId: String? = null,
+    onPendingSimulationConsumed: () -> Unit = {}
 ) {
     val startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
         Log.d(TAG, "Existing Firebase session found — starting at Dashboard")
@@ -31,6 +37,21 @@ fun WhatIfNavGraph(
     } else {
         Log.d(TAG, "No Firebase session — starting at Login")
         Destination.Login.route
+    }
+
+    // PART3-DAVID
+    LaunchedEffect(pendingSimulationId) {
+        val id = pendingSimulationId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        if (FirebaseAuth.getInstance().currentUser == null) {
+            Log.w(TAG, "Ignoring notification deep-link — signed out")
+            onPendingSimulationConsumed()
+            return@LaunchedEffect
+        }
+        Log.i(TAG, "Opening SimulationResults from notification id=$id")
+        navController.navigate(Destination.SimulationResults.createRoute(id)) {
+            launchSingleTop = true
+        }
+        onPendingSimulationConsumed()
     }
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -78,6 +99,8 @@ fun WhatIfNavGraph(
                     navController.navigate(Destination.CompareSelection.route) {
                         launchSingleTop = true
                     }
+                    Log.d(TAG, "Navigating SavedSimulations -> CompareSelection")
+                    navController.navigate(Destination.CompareSelection.route)
                 },
                 onBottomNavSelected = { destination ->
                     navController.navigateToBottomDestination(destination)
@@ -87,7 +110,7 @@ fun WhatIfNavGraph(
 
         composable(
             route = Destination.SimulationBuilder.route,
-                arguments = listOf(
+            arguments = listOf(
                 navArgument(Destination.SimulationBuilder.ARG_DRAFT_ID) {
                     type = NavType.StringType
                     defaultValue = ""
@@ -156,6 +179,9 @@ fun WhatIfNavGraph(
             CompareSelectionRoute(
                 onCompareSelected = { firstId, secondId ->
                     navController.navigate(Destination.CompareSimulation.createRoute(firstId, secondId))
+                onCompareSelected = { first, second ->
+                    Log.d(TAG, "Navigating CompareSelection -> CompareSimulation")
+                    navController.navigate(Destination.CompareSimulation.createRoute(first, second))
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -173,6 +199,9 @@ fun WhatIfNavGraph(
             CompareResultRoute(
                 firstKey = firstId,
                 secondKey = secondId,
+            CompareRoute(
+                firstId = entry.arguments?.getString(Destination.CompareSimulation.ARG_FIRST_ID).orEmpty(),
+                secondId = entry.arguments?.getString(Destination.CompareSimulation.ARG_SECOND_ID).orEmpty(),
                 onBack = { navController.popBackStack() }
             )
         }
@@ -200,6 +229,9 @@ private fun NavHostController.navigateToBottomDestination(destination: BottomNav
     if (destination == BottomNavDestination.HOME && popBackStack(route, inclusive = false)) return
     navigate(route) {
         popUpTo(Destination.Dashboard.route) { saveState = true }
+    Log.d(TAG, "Bottom nav -> ${destination.name}")
+    navigate(destination.destination.route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
         restoreState = true
     }

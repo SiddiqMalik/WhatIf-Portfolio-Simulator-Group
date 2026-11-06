@@ -31,9 +31,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
+import com.reztek.whatifportfolio.ui.i18n.localized
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 
 @Composable
@@ -181,7 +184,7 @@ fun InlineErrorBanner(
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Text(
-            text = message,
+            text = localized(message),
             style = MaterialTheme.typography.bodyMedium,
             color = ErrorRed
         )
@@ -237,6 +240,14 @@ fun WhatIfBottomNavBar(
         tonalElevation = 3.dp
     ) {
         BottomNavDestination.entries.forEach { destination ->
+            // PART3-DAVID: labels from string resources for AF / XH
+            val label = stringResource(
+                when (destination) {
+                    BottomNavDestination.HOME -> R.string.nav_home
+                    BottomNavDestination.SAVED -> R.string.nav_saved
+                    BottomNavDestination.SETTINGS -> R.string.nav_settings
+                }
+            )
             NavigationBarItem(
                 selected = currentDestination == destination,
                 onClick = { onDestinationSelected(destination) },
@@ -247,10 +258,10 @@ fun WhatIfBottomNavBar(
                             BottomNavDestination.SAVED -> Icons.Filled.Bookmarks
                             BottomNavDestination.SETTINGS -> Icons.Filled.Settings
                         },
-                        contentDescription = destination.label
+                        contentDescription = label
                     )
                 },
-                label = { Text(destination.label) },
+                label = { Text(label) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,

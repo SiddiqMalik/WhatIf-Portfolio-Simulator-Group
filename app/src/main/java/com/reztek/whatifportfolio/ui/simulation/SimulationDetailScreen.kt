@@ -41,6 +41,8 @@ import com.reztek.whatifportfolio.ui.components.PrimaryActionButton
 import com.reztek.whatifportfolio.ui.theme.BackgroundLight
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.reztek.whatifportfolio.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +56,7 @@ fun SimulationDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var actionError by remember { mutableStateOf<String?>(null) }
@@ -63,10 +66,10 @@ fun SimulationDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Simulation detail", fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(R.string.detail_title), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 }
             )
@@ -79,7 +82,7 @@ fun SimulationDetailScreen(
                 Column(Modifier.padding(padding).padding(20.dp)) {
                     InlineErrorBanner(state.message)
                     Spacer(Modifier.height(12.dp))
-                    PrimaryActionButton("Retry", onClick = { viewModel.refresh(simulationId) })
+                    PrimaryActionButton(stringResource(R.string.action_retry), onClick = { viewModel.refresh(simulationId) })
                 }
             }
             is SimulationDetailUiState.Ready -> {
@@ -102,16 +105,22 @@ fun SimulationDetailScreen(
                     onSave = {},
                     contentPadding = padding,
                     animateChart = false,
+                    offlineCopy = state.fromCache,
                     footer = {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             actionError?.let { InlineErrorBanner(it) }
                             Text(
-                                "Parameters: initial ${sim.initialInvestment}, contribution ${sim.recurringContribution}, ${sim.frequency}",
+                                stringResource(
+                                    R.string.detail_parameters,
+                                    sim.initialInvestment.toString(),
+                                    sim.recurringContribution.toString(),
+                                    sim.frequency
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                             PrimaryActionButton(
-                                text = "Rerun with latest prices",
+                                text = stringResource(R.string.detail_rerun),
                                 isLoading = busy,
                                 onClick = {
                                     scope.launch {
@@ -120,7 +129,10 @@ fun SimulationDetailScreen(
                                         try {
                                             onRerun(viewModel.rerun(simulationId))
                                         } catch (e: Exception) {
-                                            actionError = e.localizedMessage ?: "Rerun failed"
+                                            actionError = com.reztek.whatifportfolio.ui.i18n.localize(
+                                                context,
+                                                e.localizedMessage ?: "Rerun failed"
+                                            )
                                         } finally {
                                             busy = false
                                         }
@@ -132,14 +144,14 @@ fun SimulationDetailScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
-                                Text("Duplicate in builder")
+                                Text(stringResource(R.string.action_duplicate))
                             }
                             OutlinedButton(
                                 onClick = { showDeleteConfirm = true },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
-                                Text("Delete", color = ErrorRed)
+                                Text(stringResource(R.string.action_delete), color = ErrorRed)
                             }
                         }
                     }
@@ -151,8 +163,8 @@ fun SimulationDetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete simulation?") },
-            text = { Text("This cannot be undone.") },
+            title = { Text(stringResource(R.string.delete_simulation_title)) },
+            text = { Text(stringResource(R.string.delete_simulation_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -162,14 +174,17 @@ fun SimulationDetailScreen(
                                 viewModel.delete(simulationId)
                                 onDeleted()
                             } catch (e: Exception) {
-                                actionError = e.localizedMessage ?: "Delete failed"
+                                actionError = com.reztek.whatifportfolio.ui.i18n.localize(
+                                    context,
+                                    e.localizedMessage ?: "Delete failed"
+                                )
                             }
                         }
                     }
-                ) { Text("Delete", color = ErrorRed) }
+                ) { Text(stringResource(R.string.action_delete), color = ErrorRed) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }

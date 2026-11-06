@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,8 +52,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.ui.theme.NavyDeep
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
+import com.reztek.whatifportfolio.ui.i18n.localized
 
 private const val TAG = "SignInScreen"
 
@@ -125,8 +128,7 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "See what a regular investment strategy would have " +
-                    "been worth — and how it stacks up against inflation.",
+                text = stringResource(R.string.sign_in_hero),
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center
@@ -140,7 +142,7 @@ fun SignInScreen(
                     email = it
                     if (uiState is SignInUiState.Error) viewModel.consumeError()
                 },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email_label)) },
                 singleLine = true,
                 enabled = !isLoading,
                 keyboardOptions = KeyboardOptions(
@@ -159,7 +161,7 @@ fun SignInScreen(
                     password = it
                     if (uiState is SignInUiState.Error) viewModel.consumeError()
                 },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password_label)) },
                 singleLine = true,
                 enabled = !isLoading,
                 visualTransformation = if (passwordVisible) {
@@ -176,9 +178,9 @@ fun SignInScreen(
                                 Icons.Filled.Visibility
                             },
                             contentDescription = if (passwordVisible) {
-                                "Hide password"
+                                stringResource(R.string.cd_hide_password)
                             } else {
-                                "Show password"
+                                stringResource(R.string.cd_show_password)
                             }
                         )
                     }
@@ -224,7 +226,7 @@ fun SignInScreen(
                     )
                 } else {
                     Text(
-                        text = "Sign in",
+                        text = stringResource(R.string.action_sign_in),
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -247,7 +249,7 @@ fun SignInScreen(
                     .height(52.dp)
             ) {
                 Text(
-                    text = "Create account",
+                    text = stringResource(R.string.action_create_account),
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -256,7 +258,7 @@ fun SignInScreen(
             if (uiState is SignInUiState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = (uiState as SignInUiState.Error).message,
+                    text = localized((uiState as SignInUiState.Error).message),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
@@ -266,7 +268,7 @@ fun SignInScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "By continuing you agree to the Terms of Service and Privacy Policy.",
+                text = stringResource(R.string.sign_in_terms),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center

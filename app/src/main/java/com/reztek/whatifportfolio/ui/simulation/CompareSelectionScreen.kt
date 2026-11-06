@@ -21,20 +21,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.reztek.whatifportfolio.ui.components.EmptyState
+import androidx.compose.ui.res.stringResource
+import com.reztek.whatifportfolio.R
 
 /**
  * Selection UI for choosing exactly two saved simulations for comparison.
  *
  * IDs are the stable keys already used by SavedListItem ("remote-…" / "local-…").
- * Navigation is intentionally delegated to the caller so this screen can be
- * connected to the graph in the navigation commit.
+ * Exactly two different items must be selected before the button enables; a
+ * third tap is refused with a hint (rules live in [CompareSelectionRules]).
+ * Navigation is delegated to the caller (see CompareSelectionRoute).
  */
 @Composable
 fun CompareSelectionScreen(
@@ -43,28 +47,42 @@ fun CompareSelectionScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val selectedIds = remember { mutableStateListOf<String>() }
+    var rawSelection by remember { mutableStateOf<List<String>>(emptyList()) }
+    var limitHint by remember { mutableStateOf(false) }
+    // Ignore selections whose item disappeared (for example, deleted meanwhile).
+    val selectedIds = CompareSelectionRules.pruneTo(rawSelection, savedItems.map { it.key }.toSet())
+    val toggleItem: (String) -> Unit = { key ->
+        limitHint = CompareSelectionRules.isBlockedThirdPick(selectedIds, key)
+        rawSelection = CompareSelectionRules.toggle(selectedIds, key)
+    }
 
     Scaffold(
         modifier = modifier,
         bottomBar = {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
                 Text(
-                    "${selectedIds.size} of 2 selected",
+                    stringResource(R.string.compare_selected_count, selectedIds.size, CompareSelectionRules.REQUIRED_COUNT),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (limitHint) {
+                    Text(
+                        stringResource(R.string.compare_only_two),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Button(
                     onClick = {
-                        if (selectedIds.size == 2) {
+                        if (CompareSelectionRules.canCompare(selectedIds)) {
                             onCompareSelected(selectedIds[0], selectedIds[1])
                         }
                     },
-                    enabled = selectedIds.size == 2,
+                    enabled = CompareSelectionRules.canCompare(selectedIds),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Compare simulations")
+                    Text(stringResource(R.string.compare_title))
                 }
             }
         }
@@ -75,39 +93,33 @@ fun CompareSelectionScreen(
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Compare simulations",
+                    stringResource(R.string.compare_title),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 TextButton(onClick = onBack) {
-                    Text("Back")
+                    Text(stringResource(R.string.action_back))
                 }
             }
             Text(
-                "Choose two saved runs. You can compare cloud runs and on-device projections.",
+                stringResource(R.string.compare_choose_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(12.dp))
 
-            if (savedItems.isEmpty()) {
+            if (savedItems.size < CompareSelectionRules.REQUIRED_COUNT) {
                 EmptyState(
-                    title = "No saved simulations",
-                    subtitle = "Save or run a simulation before comparing."
+                    title = stringResource(R.string.compare_not_enough_title),
+                    subtitle = stringResource(R.string.compare_not_enough_subtitle)
                 )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(savedItems, key = { it.key }) { item ->
                         val isSelected = item.key in selectedIds
                         Card(
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                when {
-                                    isSelected -> selectedIds.remove(item.key)
-                                    selectedIds.size < 2 -> selectedIds.add(item.key)
-                                    else -> Unit
-                                }
-                            },
+                            modifier = Modifier.fillMaxWidth().clickable { toggleItem(item.key) },
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isSelected) {
                                     MaterialTheme.colorScheme.secondaryContainer
@@ -122,13 +134,7 @@ fun CompareSelectionScreen(
                             ) {
                                 Checkbox(
                                     checked = isSelected,
-                                    onCheckedChange = { checked ->
-                                        when {
-                                            checked && !isSelected && selectedIds.size < 2 ->
-                                                selectedIds.add(item.key)
-                                            !checked && isSelected -> selectedIds.remove(item.key)
-                                        }
-                                    }
+                                    onCheckedChange = { toggleItem(item.key) }
                                 )
                                 Column(Modifier.weight(1f)) {
                                     Text(item.title, fontWeight = FontWeight.SemiBold)
@@ -144,7 +150,7 @@ fun CompareSelectionScreen(
                                     )
                                 }
                                 Text(
-                                    if (item is SavedListItem.Local) "On device" else "Cloud",
+                                    if (item is SavedListItem.Local) stringResource(R.string.chip_on_device) else stringResource(R.string.chip_cloud),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

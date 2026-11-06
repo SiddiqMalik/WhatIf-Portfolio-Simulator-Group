@@ -65,4 +65,23 @@ class BiometricGatePolicyTest {
             )
         )
     }
+
+    @Test
+    fun shouldLockAtLaunch_requiresSessionAndEnabledSetting() {
+        assertTrue(BiometricGatePolicy.shouldLockAtLaunch(hasFirebaseSession = true, biometricEnabled = true))
+        assertFalse(BiometricGatePolicy.shouldLockAtLaunch(hasFirebaseSession = false, biometricEnabled = true))
+        assertFalse(BiometricGatePolicy.shouldLockAtLaunch(hasFirebaseSession = true, biometricEnabled = false))
+    }
+
+    @Test
+    fun shouldShowLock_isFalseUntilTheLaunchDecisionExists() {
+        assertFalse(BiometricGatePolicy.shouldShowLock(lockAtLaunch = null, biometricUnlocked = false))
+    }
+
+    @Test
+    fun shouldShowLock_isTrueOnlyWhileLockedAndNotUnlocked() {
+        assertTrue(BiometricGatePolicy.shouldShowLock(lockAtLaunch = true, biometricUnlocked = false))
+        assertFalse(BiometricGatePolicy.shouldShowLock(lockAtLaunch = true, biometricUnlocked = true))
+        assertFalse(BiometricGatePolicy.shouldShowLock(lockAtLaunch = false, biometricUnlocked = false))
+    }
 }
