@@ -22,6 +22,6 @@ object BiometricGatePolicy {
         hasFirebaseSession && biometricEnabled
 
     /** The lock screen is shown while the launch decision is "lock" and the user has not unlocked yet. */
-    fun shouldShowLock(lockAtLaunch: Boolean?, unlocked: Boolean): Boolean =
-        lockAtLaunch == true && !unlocked
+    fun shouldShowLock(lockAtLaunch: Boolean?, biometricUnlocked: Boolean): Boolean =
+        lockAtLaunch == true && !biometricUnlocked
 }
