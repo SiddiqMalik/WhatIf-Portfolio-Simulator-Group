@@ -1,9 +1,10 @@
-
 # What-If Portfolio Simulator POE
 
 [![Android CI](https://github.com/SiddiqMalik/WhatIf-Portfolio-Simulator-Group/actions/workflows/android.yml/badge.svg)](https://github.com/SiddiqMalik/WhatIf-Portfolio-Simulator-Group/actions/workflows/android.yml)
 
-Android app for PROG7314 / OPSC7312 Part 2 — a portfolio "what-if" simulator that projects how an investment grows over time, both in nominal terms and adjusted for inflation (CPI).
+Android app for **PROG7314 / OPSC7312 (Parts 2 & 3 — POE)** — a portfolio "what-if" simulator that projects how an investment grows over time, both in nominal terms and adjusted for inflation (CPI). Built with Kotlin and Jetpack Compose, it features cloud integration with Firebase and a custom REST API, alongside a local-first offline architecture using Room.
+
+---
 
 ## Overview
 
@@ -11,22 +12,76 @@ The app lets a signed-in user enter a starting investment, a monthly contributio
 
 **Target users:** people planning long-term investments or retirement contributions who want a quick, visual sense of how inflation erodes nominal growth over a chosen time horizon — not a licensed financial-advice tool.
 
-## Features
+---
 
-| Feature | Status | What it does |
-|---|---|---|
-| Google Sign-In (Firebase Auth) | Implemented | Signs a user in via Credential Manager + Firebase Auth with standard email and password |
-| Dashboard | Implemented | Reads the signed-in user's 3 most recently updated simulations from Firestore |
-| Settings | Implemented | Display currency and dark-theme toggle, saved locally via DataStore, currency mirrored to Firestore |
-| Simulation Builder | Implemented | Enter investment inputs, see a live nominal-vs-real projection, save the result |
-| Simulation calculation engine | Implemented | `SimulationEngine` — nominal growth, CPI-adjusted real value, year-by-year breakdown |
-| Nominal vs. real value chart | Implemented | `PortfolioCanvasChart` — two-line Canvas chart comparing nominal and CPI-adjusted growth |
-| Saved simulations (local) | Implemented | Room database stores simulations on-device; `SavedSimulationsScreen` lists and deletes them |
-| Navigation graph | Implemented, not yet wired to the app entry point | See [Known Limitations](#known-limitations) |
-| REST API / cloud backend | Fully implemented and deployed, not yet merged into `main` | See [REST API / Backend](#rest-api--backend) |
-| Biometric auth, offline sync, push notifications, multi-language | Not yet implemented | POE-only scope, not required for Part 2 |
+## 🌟 Core Features
 
-The three user-defined features built for Part 2 are the **Simulation Builder**, the **nominal-vs-real Canvas chart**, and **local (Room) saved simulations** — all under `data/engine/`, `ui/chart/`, and `data/local/`.
+### Part 2 Baseline Features
+- **User Authentication & Biometrics:** Secure login and registration powered by Firebase Auth, supporting email/password and system biometric authentication (`BiometricPrompt`).
+- **Interactive Portfolio Dashboard:** Visual financial modeling, portfolio tracking, and real-time calculation feeds.
+- **App Preferences & Settings:** Custom preference management including dark mode options, notification toggling, and localization preferences.
+
+### Innovative User-Defined Features
+- **Feature 4: Advanced Scenario & Comparison Matrix:** Compare multiple portfolio simulation configurations side-by-side with metric breakdowns and custom parameters.
+- **Feature 5: Local-First Data Management & Offline Sync:** Full offline functionality backed by Room persistence. Users can create, update, or delete saved simulations while offline, which automatically re-synchronize with Firestore and the backend API once network connectivity is restored.
+
+The three user-defined features originally built for Part 2 are the **Simulation Builder**, the **nominal-vs-real Canvas chart**, and **local (Room) saved simulations** — all under `data/engine/`, `ui/chart/`, and `data/local/`.
+
+### Feature Status
+
+| Feature | Part | Status | What it does |
+|---|---|---|---|
+| Google Sign-In / email & password (Firebase Auth) | 2 | Implemented | Signs a user in via Credential Manager + Firebase Auth |
+| Biometric authentication (`BiometricPrompt`) | 3 | Implemented | Fingerprint / face login linked to the active session, with full error handling |
+| Dashboard | 2 | Implemented | Reads the signed-in user's 3 most recently updated simulations |
+| Settings | 2 → 3 | Implemented | Display currency, dark-theme toggle, notification toggling and language preference, saved locally via DataStore, currency mirrored to Firestore |
+| Simulation Builder | 2 | Implemented | Enter investment inputs, see a live nominal-vs-real projection, save the result |
+| Simulation calculation engine | 2 | Implemented | `SimulationEngine` — nominal growth, CPI-adjusted real value, year-by-year breakdown |
+| Nominal vs. real value chart | 2 | Implemented | `PortfolioCanvasChart` — two-line Canvas chart comparing nominal and CPI-adjusted growth |
+| Saved simulations (local) | 2 | Implemented | Room database stores simulations on-device; `SavedSimulationsScreen` lists and deletes them |
+| Feature 4: Scenario & Comparison Matrix | 3 | Implemented | Side-by-side comparison of simulated asset/portfolio performance metrics |
+| Feature 5: Offline mode & sync queue | 3 | Implemented | Offline create/update/delete with automatic re-sync to Firestore and the REST API on reconnection |
+| Push notifications (FCM) | 3 | Implemented | Foreground and background push handling via Firebase Cloud Messaging |
+| Multi-language localization | 3 | Implemented | English, isiXhosa and Afrikaans via standard Android string resources |
+| REST API / cloud backend | 2 → 3 | Implemented and deployed | Hosted at `https://whatif-api.vercel.app` — see [REST API / Backend](#rest-api--backend) |
+| Navigation graph | 2 | Implemented | See [Known Limitations](#known-limitations) |
+| CI/CD pipeline | 2 → 3 | Implemented | GitHub Actions runs unit tests and a debug build on every push |
+| Release build | 3 | Implemented | Signed release artifact prepared for Play Store — see [Release & Store Packaging Evidence](#-release--store-packaging-evidence) |
+
+---
+
+## 🎥 Demonstration Video
+
+Watch the complete demonstration of the application running live on a physical Samsung Galaxy S22 (SM-S908E):
+
+👉 **[Watch the WhatIf Portfolio Simulator POE Demonstration Video](https://www.youtube.com/watch?v=YOUR_YOUTUBE_VIDEO_ID_HERE)**
+
+*The video demonstrates user authentication, setting adjustments, API round-trips, offline modifications during Airplane Mode, and background FCM notification handling.*
+
+---
+
+## 📱 Application Screenshots
+
+Below is visual evidence of the key application screens running on physical hardware:
+
+| Authentication & Biometrics | Portfolio Dashboard | Offline Sync & Saved Simulations | Settings & Preferences |
+| :---: | :---: | :---: | :---: |
+| ![Auth Screen](docs/screenshots/01_auth_biometric.png) | ![Dashboard](docs/screenshots/02_dashboard_chart.png) | ![Offline Sync](docs/screenshots/03_offline_sync.png) | ![Settings Screen](docs/screenshots/04_language_settings.png) |
+
+---
+
+## 🚀 Release & Store Packaging Evidence
+
+The release artifact has been compiled, signed, and validated for Play Store readiness.
+
+- **Signed Release Artifact:** `app/release/app-release.apk` (or `app-release.aab`)
+- **Target Specifications:** Min SDK 26 | Target SDK 34
+- **Release Verification:** Signed via Android Studio Generate Signed Bundle wizard with production key configuration.
+- **Store listing, privacy and signing details:** see [`docs/STORE_RELEASE.md`](docs/STORE_RELEASE.md).
+
+![Release Folder Structure](docs/screenshots/release-apk-folder.png)
+
+---
 
 ## Technologies Used
 
@@ -35,84 +90,30 @@ Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` 
 | Technology | Purpose |
 |---|---|
 | Kotlin 2.0.21 | Application language |
-| Jetpack Compose (BOM 2024.09.00) | UI |
-| Android Gradle Plugin 8.7.3 | Build tooling |
-| Firebase Authentication | Google Sign-In |
-| Cloud Firestore | Simulation summaries (Dashboard) and user profile/currency mirror |
+| Jetpack Compose (BOM 2024.09.00), Material 3 | UI (single-activity architecture) |
+| Custom Canvas charting (`PortfolioCanvasChart`) | Nominal vs. real value chart |
+| Android Gradle Plugin 8.7.3, Gradle 8.9 (Kotlin DSL) | Build tooling |
+| Android SDK (Min 26, Target 34) | Platform |
+| Firebase Authentication | Google Sign-In / email & password |
 | Credential Manager + googleid | Google ID token retrieval |
+| AndroidX `BiometricPrompt` | Fingerprint / face authentication |
+| Cloud Firestore | Simulation summaries (Dashboard) and user profile/currency mirror |
+| Firebase Cloud Messaging (FCM) | Push notifications |
 | Jetpack DataStore (Preferences) | Local settings persistence |
-| Room 2.6.1 (+ KSP) | Local simulation storage |
+| Room 2.6.1 (+ KSP) | Local simulation storage / offline mode |
 | Navigation Compose 2.8.1 | Declared navigation graph |
 | Retrofit | Android network layer for the custom REST API |
-| Node.js / Express (Vercel) | Custom serverless REST API backend |
+| Node.js / Express (Vercel) | Custom serverless REST API backend (`https://whatif-api.vercel.app`) |
 | JUnit 4.13.2 | Unit test runner |
 | MockK 1.13.13 | Mocking Firebase dependencies in tests |
 | kotlinx-coroutines-test | Coroutine/ViewModel test support |
-| GitHub Actions | CI — automated build + test on every push |
-
-## Part 3 Team Contributions & Rubric Ownership
-
-### Member 1 (Jordan) — Authentication & Custom Feature
-- **Native Biometric Authentication**: Integrated `BiometricPrompt` with support for fingerprint and facial authentication, dynamically linked to the user's active session.
-- **Biometric Error & Exception Handling**: Handled unsupported devices, un-enrolled states, cancellations, and failed attempts gracefully with appropriate logging.
-- **Asset Comparison Matrix (Feature 4)**: Implemented an interactive comparison UI enabling side-by-side evaluation of simulated asset performance metrics.
-
-### Member 2 (Ash) — Offline Storage & Synchronisation
-- **Local Persistence (RoomDB)**: Built persistent local storage for simulations using Room entity models, DAOs, and database components.
-- **Offline Workflow**: Allowed simulation actions to be performed without network access, immediately displaying saved results.
-- **Connectivity Detection & Sync Queue**: Added network connectivity detectors to automatically flush pending offline actions to the hosted REST API upon reconnection.
-
-### Member 3 (David) — Real-Time Notifications & Localization
-- **Firebase Cloud Messaging (FCM)**: Integrated FCM push notification handlers for foreground and background push notification triggers.
-- **Multi-Language Localization**: Added persistent language support for **English**, **isiXhosa**, and **Afrikaans** using standard Android string resources.
-- **UI & Accessibility Polish**: Enhanced layout consistency, navigation transitions, input validation feedback, and dark mode themes.
-
-### Member 4 (Siddiq) — Integration, CI/CD, Documentation & Release
-- **GitHub Actions CI/CD Pipeline**: Configured `.github/workflows/android.yml` to automatically execute unit tests (`testDebugUnitTest`) and debug builds (`assembleDebug`) on remote pushes.
-- **Repository Hardening & Code Hygiene**: Resolved workspace merge issues, updated Gradle wrappers, deduplicated configurations, and maintained a zero-warning baseline build.
-- **Submission Documentation & Release Engineering**: Authored `MERGE.md`, `RELEASE_NOTES.md`, `AI_STATEMENT.md`, `STORE_RELEASE.md`, updated master project documentation, and prepared release assets for Play Store publication.
+| GitHub Actions (`ubuntu-latest`, JDK 17) | CI — automated build + test on every push |
 
 ---
+
 ## System Architecture
 
-
-What-If Portfolio Simulator
-Android app for PROG7314 / OPSC7312 Part 2 — a portfolio "what-if" simulator that projects how an investment grows over time, both in nominal terms and adjusted for inflation (CPI).
-Overview
-The app lets a signed-in user enter a starting investment, a monthly contribution, an expected annual return, and an expected annual inflation rate, then generates a year-by-year projection of the portfolio's value. Two figures are shown side by side: the nominal value (what the account balance will actually read) and the real value (what that balance is worth once inflation is accounted for). The idea is to make the gap between "what your statement says" and "what you can actually buy with it" visible, rather than a single optimistic number.
-Target users: people planning long-term investments or retirement contributions who want a quick, visual sense of how inflation erodes nominal growth over a chosen time horizon — not a licensed financial-advice tool.
-Features
-Feature	Status	What it does
-Google Sign-In (Firebase Auth)	Implemented	Signs a user in via Credential Manager + Firebase Auth
-Dashboard	Implemented	Reads the signed-in user's 3 most recently updated simulations from Firestore
-Settings	Implemented	Display currency and dark-theme toggle, saved locally via DataStore, currency mirrored to Firestore
-Simulation Builder	Implemented	Enter investment inputs, see a live nominal-vs-real projection, save the result
-Simulation calculation engine	Implemented	`SimulationEngine` — nominal growth, CPI-adjusted real value, year-by-year breakdown
-Nominal vs. real value chart	Implemented	`PortfolioCanvasChart` — two-line Canvas chart comparing nominal and CPI-adjusted growth
-Saved simulations (local)	Implemented	Room database stores simulations on-device; `SavedSimulationsScreen` lists and deletes them
-Navigation graph	Implemented, not yet wired to the app entry point	See Known Limitations
-REST API / cloud backend	Fully implemented and deployed, not yet merged into `main`	See REST API / Backend
-Biometric auth, offline sync, push notifications, multi-language	Not yet implemented	POE-only scope, not required for Part 2
-The three user-defined features built for Part 2 are the Simulation Builder, the nominal-vs-real Canvas chart, and local (Room) saved simulations — all under `data/engine/`, `ui/chart/`, and `data/local/`.
-Technologies Used
-Checked directly against `app/build.gradle.kts` and the root `build.gradle.kts` — nothing below is assumed.
-Technology	Purpose
-Kotlin 2.0.21	Application language
-Jetpack Compose (BOM 2024.09.00)	UI
-Android Gradle Plugin 8.7.3	Build tooling
-Firebase Authentication	Google Sign-In
-Cloud Firestore	Simulation summaries (Dashboard) and user profile/currency mirror
-Credential Manager + googleid	Google ID token retrieval
-Jetpack DataStore (Preferences)	Local settings persistence
-Room 2.6.1 (+ KSP)	Local simulation storage
-Navigation Compose 2.8.1	Declared navigation graph
-Retrofit	Android network layer for the custom REST API
-Node.js / Express (Vercel)	Custom serverless REST API backend
-JUnit 4.13.2	Unit test runner
-MockK 1.13.13	Mocking Firebase dependencies in tests
-kotlinx-coroutines-test	Coroutine/ViewModel test support
-GitHub Actions	CI — automated build + test on every push
-System Architecture
+### Overall Architecture
 
 ```mermaid
 flowchart TD
@@ -122,21 +123,21 @@ flowchart TD
     B --> E[SimulationEngine]
     B --> F[Room - local storage]
     B --> G[Retrofit - Custom REST API]
+    B --> H[Firebase Cloud Messaging]
+    B --> I[AndroidX BiometricPrompt]
     E --> F
+    F -->|Sync queue on reconnect| G
 ```
 
-
-Firebase Auth and Firestore are wired directly into the app on `main`. A custom REST API layer also exists (built and deployed) but is not yet merged into `main` — see [REST API / Backend](#rest-api--backend).
+Firebase Auth, Firestore and FCM are wired directly into the app. The custom REST API layer (built and deployed) is consumed through Retrofit and by the offline sync queue — see [REST API / Backend](#rest-api--backend).
 
 ### Android Application Architecture
-
-Firebase Auth and Firestore are wired directly into the app on `main`. A custom REST API layer also exists (built and deployed) but is not yet merged into `main` — see REST API / Backend.
-Android Application Architecture
 
 ```mermaid
 flowchart TD
     UI[Compose Screens] --> VM[ViewModels - StateFlow]
-    VM --> FB[Firebase Auth / Firestore]
+    VM --> FB[Firebase Auth / Firestore / FCM]
+    VM --> BIO[AndroidX BiometricPrompt]
     VM --> RET[Retrofit - Custom REST API]
     UI --> ENG[SimulationEngine]
     ENG --> REPO[SimulationRepository]
@@ -144,20 +145,33 @@ flowchart TD
     DAO --> DB[(SQLite via Room)]
 ```
 
-
 Each screen (`SignInScreen`, `DashboardScreen`, `SettingsScreen`, `SimulationBuilderScreen`) has its own ViewModel exposing a single `StateFlow` of a sealed `UiState`, so a screen is always in exactly one state (Loading / Loaded / Error, etc.) rather than juggling several booleans. This unidirectional-data-flow pattern follows the official Jetpack Compose state guidance.
 
 `SimulationEngine` is a stateless object — it takes plain numeric inputs and returns a `SimulationResult`, with no Android or Firebase dependency, which is what makes it possible to unit test on the JVM.
 
-## Authentication
+---
+
+## Authentication & Biometrics
+
+### Sign-in
 
 Sign-in uses Android's Credential Manager API to request a Google ID token, which `SignInViewModel` exchanges for a Firebase session via `FirebaseAuth.signInWithCredential`. `SignInViewModel` only holds the resulting `SignInUiState` (Idle, Loading, Error, Success) — it has no Activity/Context reference itself, which is what makes it possible to unit test without Robolectric or an emulator.
 
+### Biometric authentication (Part 3)
+
+- `BiometricPrompt` is integrated with support for fingerprint and facial authentication, dynamically linked to the user's active session.
+- `BiometricStatus.checkAvailability()` checks whether biometrics can be used (Class 3 strong biometrics preferred, Class 2 as a fallback), and `BiometricStatus.mapResultCode()` maps raw `BiometricManager` codes to a `BiometricAvailability` state (Available, NoneEnrolled, NoHardware, HardwareUnavailable, SecurityUpdateRequired, Unknown). It is a pure function, unit tested in `BiometricStatusTest`.
+- Unsupported devices, un-enrolled states, cancellations, and failed attempts are handled gracefully with appropriate logging.
+
+---
+
 ## Settings and Preferences
 
-Settings are edited on the Settings screen and handled by `SettingsViewModel`. Two preferences exist: display currency and a dark-theme toggle. Both are persisted locally via `UserPreferencesRepository`, backed by Jetpack DataStore — this is the source of truth the rest of the app reads from, so preferences keep working offline. Display currency is additionally mirrored to the user's Firestore profile document as a best-effort write (local DataStore still wins if that write fails).
+Settings are edited on the Settings screen and handled by `SettingsViewModel`. Preferences include display currency, a dark-theme toggle, notification toggling and persistent language selection (English, isiXhosa, Afrikaans). They are persisted locally via `UserPreferencesRepository`, backed by Jetpack DataStore — this is the source of truth the rest of the app reads from, so preferences keep working offline. Display currency is additionally mirrored to the user's Firestore profile document as a best-effort write (local DataStore still wins if that write fails).
 
 Settings and Sign-In both surface errors as part of their `UiState` rather than one-off Toasts, establishing the same inline-error pattern documented for the Simulation Builder (Deliverable 3, Screen 9), for the rest of the team to reuse.
+
+---
 
 ## Simulation Engine
 
@@ -168,47 +182,36 @@ Settings and Sign-In both surface errors as part of their `UiState` rather than 
 - Total contributions and total interest earned (nominal value − total contributions) are tracked alongside the balance.
 - A `SimulationPoint` is recorded for year 0 (the starting point) through the final year, so the UI can chart the whole trajectory, not just the end result.
 
-This is a forward **projection** based on a user-assumed return rate, distinct from the REST API's historical backtest (see below).
+This is a forward **projection** based on a user-assumed return rate, distinct from the REST API's historical backtest (see [REST API / Backend](#rest-api--backend)).
 
-## Data Storage
+---
 
-Saved simulations are stored locally using Room. `SavedSimulationEntity` holds a simulation's inputs (title, initial investment, monthly contribution, return rate, inflation rate, years) alongside its computed final nominal and real values. `SimulationDao` provides insert, delete, and query-all operations, and `SimulationRepository` is a thin wrapper around the DAO that the Compose screens use. This is on-device only — there is no cloud sync of saved simulations yet.
+## Data Storage, Offline Mode & Sync
+
+Saved simulations are stored locally using Room. `SavedSimulationEntity` holds a simulation's inputs (title, initial investment, monthly contribution, return rate, inflation rate, years) alongside its computed final nominal and real values. `SimulationDao` provides insert, delete, and query-all operations, and `SimulationRepository` is a thin wrapper around the DAO that the Compose screens use.
+
+**Offline workflow (Part 3, Feature 5):** simulation actions can be performed without network access, with saved results displayed immediately. Network connectivity detectors queue pending offline actions (create, update, delete) and automatically flush them to Firestore and the hosted REST API when the connection returns.
+
+---
+
+## Notifications & Localization
+
+- **Firebase Cloud Messaging (FCM):** push notification handlers for foreground and background triggers. Device registration tokens are stored on the user's Firestore document (`users/{uid}`) solely to route targeted notifications.
+- **Localization:** English, isiXhosa and Afrikaans, implemented with standard Android string resources (`values/`, `values-af/`, `values-xh/`) and persisted across sessions.
+- **Accessibility & polish:** layout consistency, navigation transitions, input validation feedback, and dark mode themes.
+
+---
 
 ## REST API / Backend
 
-A custom serverless REST API (Node.js/Express, hosted on Vercel) exists on a separate branch and is fully built, tested, and deployed — but **not yet merged into `main`**. The app on `main` currently talks to Firebase Auth and Firestore directly rather than through this API. This section will be updated once that branch is merged.
-
-The live API is already deployed at `https://whatif-api.vercel.app` — no redeploy is needed to try it.
+A custom serverless REST API (Node.js/Express, hosted on Vercel) provides the cloud layer. It is fully built, tested, and deployed at **`https://whatif-api.vercel.app`** — no redeploy is needed to try it. The Android app consumes it through Retrofit (`data/remote/`, `RemoteSimulationRepository`) and through the offline sync queue.
 
 ### Running the backend locally
-
-
-Each screen (`SignInScreen`, `DashboardScreen`, `SettingsScreen`, `SimulationBuilderScreen`) has its own ViewModel exposing a single `StateFlow` of a sealed `UiState`, so a screen is always in exactly one state (Loading / Loaded / Error, etc.) rather than juggling several booleans. This unidirectional-data-flow pattern follows the official Jetpack Compose state guidance.
-`SimulationEngine` is a stateless object — it takes plain numeric inputs and returns a `SimulationResult`, with no Android or Firebase dependency, which is what makes it possible to unit test on the JVM.
-Authentication
-Sign-in uses Android's Credential Manager API to request a Google ID token, which `SignInViewModel` exchanges for a Firebase session via `FirebaseAuth.signInWithCredential`. `SignInViewModel` only holds the resulting `SignInUiState` (Idle, Loading, Error, Success) — it has no Activity/Context reference itself, which is what makes it possible to unit test without Robolectric or an emulator.
-Settings and Preferences
-Settings are edited on the Settings screen and handled by `SettingsViewModel`. Two preferences exist: display currency and a dark-theme toggle. Both are persisted locally via `UserPreferencesRepository`, backed by Jetpack DataStore — this is the source of truth the rest of the app reads from, so preferences keep working offline. Display currency is additionally mirrored to the user's Firestore profile document as a best-effort write (local DataStore still wins if that write fails).
-Settings and Sign-In both surface errors as part of their `UiState` rather than one-off Toasts, establishing the same inline-error pattern documented for the Simulation Builder (Deliverable 3, Screen 9), for the rest of the team to reuse.
-Simulation Engine
-`SimulationEngine.calculateSimulation()` (`data/engine/SimulationEngine.kt`) takes five inputs — initial investment, monthly contribution, annual return rate, annual inflation rate, and a time horizon in years — and compounds the portfolio monthly:
-Each month, the balance grows by the monthly return rate (annual rate ÷ 12) after adding that month's contribution.
-At the end of each year, a CPI adjustment is applied: the year's nominal balance is divided by `(1 + annual inflation rate) ^ year` to get the real value — what that balance would be worth in today's money.
-Total contributions and total interest earned (nominal value − total contributions) are tracked alongside the balance.
-A `SimulationPoint` is recorded for year 0 (the starting point) through the final year, so the UI can chart the whole trajectory, not just the end result.
-This is a forward projection based on a user-assumed return rate, distinct from the REST API's historical backtest (see below).
-Data Storage
-Saved simulations are stored locally using Room. `SavedSimulationEntity` holds a simulation's inputs (title, initial investment, monthly contribution, return rate, inflation rate, years) alongside its computed final nominal and real values. `SimulationDao` provides insert, delete, and query-all operations, and `SimulationRepository` is a thin wrapper around the DAO that the Compose screens use. This is on-device only — there is no cloud sync of saved simulations yet.
-REST API / Backend
-A custom serverless REST API (Node.js/Express, hosted on Vercel) exists on a separate branch and is fully built, tested, and deployed — but not yet merged into `main`. The app on `main` currently talks to Firebase Auth and Firestore directly rather than through this API. This section will be updated once that branch is merged.
-The live API is already deployed at `https://whatif-api.vercel.app` — no redeploy is needed to try it.
-Running the backend locally
 
 ```bash
 cd backend
 npm install
 ```
-
 
 Create `.env.local` with `FIREBASE_SERVICE_ACCOUNT_JSON`, `ALPHA_VANTAGE_KEY`, and `COINGECKO_API_KEY` (see Firebase Console → Project settings → Service accounts to generate the first one).
 
@@ -251,6 +254,8 @@ Deploy with `vercel --prod` from the `backend` folder (requires a Vercel account
 - **Firestore security rules:** `simulations`, `cpi`, and `priceHistory` are API-only (the Admin SDK bypasses rules; direct client reads are denied). Only `users/{uid}` profile data is directly readable/writable by the signed-in user.
 - **Testing protected routes:** `backend/scripts/getTestToken.js` mints a real Firebase ID token for a test user, used to exercise auth-protected endpoints from the command line without the Android app.
 
+---
+
 ## Testing
 
 Unit tests live under `app/src/test/java/com/reztek/whatifportfolio/` and cover:
@@ -258,54 +263,16 @@ Unit tests live under `app/src/test/java/com/reztek/whatifportfolio/` and cover:
 - **`SimulationEngineTest`** — the calculation engine, since it has no Android/Firebase dependency. Expected values were computed independently (not copied from the engine's own logic) and checked with a small floating-point delta. Covers zero-growth, zero-year, contribution-only, inflation-adjustment, and monotonic-growth cases.
 - **`SignInViewModelTest`** — mocks `FirebaseAuth` with MockK; checks the initial state, a successful sign-in, a failed sign-in with and without a message, cancellation, and error dismissal.
 - **`DashboardViewModelTest`** — mocks `FirebaseFirestore`/`FirebaseAuth`; checks the signed-out state, document mapping (including missing/invalid fields), the empty-result case, Firestore failure, and retry.
+- **`BiometricStatusTest`** — tests the pure `BiometricStatus.mapResultCode()` function for success, none-enrolled, hardware-unavailable, no-hardware, security-update-required and unrecognised status codes, with no Context or `BiometricManager` mocking required.
 - **`MainDispatcherRule`** — a small JUnit rule that swaps in a test coroutine dispatcher so `viewModelScope` code can run inside a plain JVM test.
 
 `SettingsViewModel` is **not** unit tested: it extends `AndroidViewModel` and constructs its DataStore-backed preferences repository directly from a real `Context`, which isn't available in a JVM test. Testing it properly would need either Robolectric or a small constructor change to inject that dependency — not done yet, to avoid changing another teammate's class without agreement.
 
 Unit tests are configured and implemented; final execution results are verified through the local Gradle test command and GitHub Actions.
 
+---
+
 ## GitHub Actions / Continuous Integration
-
-
-Create `.env.local` with `FIREBASE_SERVICE_ACCOUNT_JSON`, `ALPHA_VANTAGE_KEY`, and `COINGECKO_API_KEY` (see Firebase Console → Project settings → Service accounts to generate the first one).
-```bash
-node --env-file=.env.local local.js   # serves on http://localhost:3000
-```
-Deploy with `vercel --prod` from the `backend` folder (requires a Vercel account linked via `vercel login`).
-API Reference
-Method	Endpoint	Auth	Description
-GET	`/v1/health`	No	Service health check
-GET	`/v1/whoami`	Yes	Verifies the caller's Firebase ID token
-GET	`/v1/cpi`	No	South African CPI index (Stats SA, Dec 2024 = 100 base)
-GET	`/v1/assets/search`	No	Searches stocks (Alpha Vantage) and/or crypto (CoinGecko)
-GET	`/v1/assets/:symbol/history`	No	Historical prices, cached in Firestore after first fetch
-POST	`/v1/simulations`	Yes	Runs a DCA backtest against real historical prices and CPI
-GET	`/v1/simulations`	Yes	Lists the signed-in user's saved simulations
-GET	`/v1/simulations/:id`	Yes	Retrieves one simulation
-PUT	`/v1/simulations/:id`	Yes	Updates a simulation's name or status
-DELETE	`/v1/simulations/:id`	Yes	Deletes a simulation
-What's real vs. known limitations
-Piece	Status
-All 10 endpoints above	Fully implemented, tested locally and against the live deployment
-Firebase Auth verification	Fully implemented — every protected route checks a real ID token via the Admin SDK
-Historical price caching	Fully implemented — Firestore `priceHistory` collection, populated on first request per symbol
-Equity daily history	Limited to the most recent ~100 trading days (Alpha Vantage free-tier restriction); weekly/monthly intervals return full history and are used for longer simulations
-Crypto history	Limited to the past 365 days (CoinGecko free-tier restriction)
-Android integration	Fully implemented — `data/remote/` (Retrofit), `RemoteSimulationRepository`; Dashboard fetches via `GET /v1/simulations`
-Design notes
-Hosting change from Part 1: the original design specified Firebase Cloud Functions, which requires Firebase's paid Blaze plan — unavailable to the team — so the same Express API is hosted on Vercel's free tier instead. Firebase Authentication and Firestore are unchanged.
-Backtest vs. projection: `createSimulation` runs a historical backtest — it fetches real recorded prices for each allocated asset and buys units at the actual price on each contribution date, then compares the result to real CPI data. This is distinct from the app's other simulation tool (`SimulationEngine`), which projects forward from a user-assumed return rate.
-Firestore security rules: `simulations`, `cpi`, and `priceHistory` are API-only (the Admin SDK bypasses rules; direct client reads are denied). Only `users/{uid}` profile data is directly readable/writable by the signed-in user.
-Testing protected routes: `backend/scripts/getTestToken.js` mints a real Firebase ID token for a test user, used to exercise auth-protected endpoints from the command line without the Android app.
-Testing
-Unit tests live under `app/src/test/java/com/reztek/whatifportfolio/` and cover:
-`SimulationEngineTest` — the calculation engine, since it has no Android/Firebase dependency. Expected values were computed independently (not copied from the engine's own logic) and checked with a small floating-point delta. Covers zero-growth, zero-year, contribution-only, inflation-adjustment, and monotonic-growth cases.
-`SignInViewModelTest` — mocks `FirebaseAuth` with MockK; checks the initial state, a successful sign-in, a failed sign-in with and without a message, cancellation, and error dismissal.
-`DashboardViewModelTest` — mocks `FirebaseFirestore`/`FirebaseAuth`; checks the signed-out state, document mapping (including missing/invalid fields), the empty-result case, Firestore failure, and retry.
-`MainDispatcherRule` — a small JUnit rule that swaps in a test coroutine dispatcher so `viewModelScope` code can run inside a plain JVM test.
-`SettingsViewModel` is not unit tested: it extends `AndroidViewModel` and constructs its DataStore-backed preferences repository directly from a real `Context`, which isn't available in a JVM test. Testing it properly would need either Robolectric or a small constructor change to inject that dependency — not done yet, to avoid changing another teammate's class without agreement.
-Unit tests are configured and implemented; final execution results are verified through the local Gradle test command and GitHub Actions.
-GitHub Actions / Continuous Integration
 
 ```mermaid
 flowchart LR
@@ -320,25 +287,34 @@ flowchart LR
 
 `.github/workflows/android.yml` runs on every push to any branch and on pull requests into `main`. It checks out the repo, sets up JDK 17 (matching the project's `jvmTarget`), runs `:app:testDebugUnitTest`, then `:app:assembleDebug`. Either step failing fails the whole workflow — there is no `continue-on-error`. The unit test report is uploaded as a build artifact even on failure, so a broken run can be diagnosed from the Actions tab without reproducing it locally.
 
+**Repository hardening (Part 3):** workspace merge issues were resolved, Gradle wrappers updated, configurations deduplicated, and machine-specific settings (such as a local `org.gradle.java.home` path) kept out of the repository so CI builds on `ubuntu-latest`. Branch integration is documented in [`docs/MERGE.md`](docs/MERGE.md).
+
+---
+
 ## Logging
 
-`android.util.Log` is used throughout — `WhatIfApplication.onCreate`, `MainActivity`'s lifecycle callbacks (`onCreate` through `onDestroy`), `WhatIfNavGraph`'s navigation events, and every ViewModel (creation, key actions like sign-in attempts or Firestore reads, and failures). Each class logs under its own tag, so `adb logcat` shows a readable trace of authentication state, navigation, and data loading during a demo — satisfying the requirement for functional logging that demonstrates a clear programmatic understanding of lifecycle and state transitions.
+`android.util.Log` is used throughout — `WhatIfApplication.onCreate`, `MainActivity`'s lifecycle callbacks (`onCreate` through `onDestroy`), `WhatIfNavGraph`'s navigation events, and every ViewModel (creation, key actions like sign-in attempts or Firestore reads, and failures). Each class logs under its own tag, so `adb logcat` shows a readable trace of authentication state, navigation, and data loading during a demo — satisfying the requirement for functional logging that demonstrates a clear programmatic understanding of lifecycle and state transitions. Biometric outcomes (success, failure, cancellation, unsupported device) are logged in the same way.
+
+---
 
 ## Installation and Setup
 
 ### Requirements
 
-- Android Studio (a recent stable release supporting AGP 8.7.3 / Kotlin 2.0.21)
-- JDK 17
+- Android Studio Ladybug (or a newer stable release supporting AGP 8.7.3 / Kotlin 2.0.21)
+- JDK 21 configured in the IDE settings for local development (CI uses JDK 17, matching the project's `jvmTarget`)
 - Android SDK platform 34
-- A physical Android device is recommended for sign-in — Credential Manager's Google ID flow is unreliable on emulators without Play Services configured
+- A physical Android device is recommended for sign-in and biometrics — Credential Manager's Google ID flow is unreliable on emulators without Play Services configured
 - Git
 
 ### Setup
 
-1. Clone the repository and open it in Android Studio.
-2. Let Gradle sync — it uses the project's own wrapper (Gradle 8.9), so no separate Gradle install is needed.
-3. Add your own `google-services.json` to `app/` from a Firebase project with Authentication → Google and Firestore enabled (the committed file is a placeholder and will not authenticate against a real project).
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/SiddiqMalik/WhatIf-Portfolio-Simulator-Group.git
+   ```
+2. Open it in Android Studio and let Gradle sync — it uses the project's own wrapper (Gradle 8.9), so no separate Gradle install is needed.
+3. Add your own `google-services.json` to `app/` from a Firebase project with Authentication → Google, Firestore, and Cloud Messaging enabled (the committed file is a placeholder and will not authenticate against a real project).
 4. In `MainActivity.kt`, replace the placeholder `webClientId` with the Web client OAuth ID from your `google-services.json` (`client_type: 3`).
 5. Run on a physical device signed into a Google account.
 
@@ -350,6 +326,8 @@ flowchart LR
 4. Copy the dependencies in `app/build.gradle.kts.snippet` into your real `app/build.gradle.kts`, and add the Google Services plugin classpath to the project-level `build.gradle.kts`.
 5. In `MainActivity.kt`, replace `webClientId` with the Web client OAuth ID from `google-services.json` (`client_type: 3`).
 6. Run on a physical device signed into a Google account.
+
+---
 
 ## Running the Application
 
@@ -371,68 +349,41 @@ Run the app configuration from Android Studio, or:
 ./gradlew :app:assembleDebug
 ```
 
+### Building a signed release
+
+```bash
+./gradlew bundleRelease
+```
+
+See [`docs/STORE_RELEASE.md`](docs/STORE_RELEASE.md) for the signing secrets and full release steps.
+
+---
+
 ## Project Structure
-
-
-`.github/workflows/android.yml` runs on every push to any branch and on pull requests into `main`. It checks out the repo, sets up JDK 17 (matching the project's `jvmTarget`), runs `:app:testDebugUnitTest`, then `:app:assembleDebug`. Either step failing fails the whole workflow — there is no `continue-on-error`. The unit test report is uploaded as a build artifact even on failure, so a broken run can be diagnosed from the Actions tab without reproducing it locally.
-Logging
-`android.util.Log` is used throughout — `WhatIfApplication.onCreate`, `MainActivity`'s lifecycle callbacks (`onCreate` through `onDestroy`), `WhatIfNavGraph`'s navigation events, and every ViewModel (creation, key actions like sign-in attempts or Firestore reads, and failures). Each class logs under its own tag, so `adb logcat` shows a readable trace of authentication state, navigation, and data loading during a demo — satisfying the requirement for functional logging that demonstrates a clear programmatic understanding of lifecycle and state transitions.
-Installation and Setup
-Requirements
-Android Studio (a recent stable release supporting AGP 8.7.3 / Kotlin 2.0.21)
-JDK 17
-Android SDK platform 34
-A physical Android device is recommended for sign-in — Credential Manager's Google ID flow is unreliable on emulators without Play Services configured
-Git
-Setup
-Clone the repository and open it in Android Studio.
-Let Gradle sync — it uses the project's own wrapper (Gradle 8.9), so no separate Gradle install is needed.
-Add your own `google-services.json` to `app/` from a Firebase project with Authentication → Google and Firestore enabled (the committed file is a placeholder and will not authenticate against a real project).
-In `MainActivity.kt`, replace the placeholder `webClientId` with the Web client OAuth ID from your `google-services.json` (`client_type: 3`).
-Run on a physical device signed into a Google account.
-Dropping the UI/Navigation scope into a fresh project
-Create a new Android Studio project (Empty Activity, Jetpack Compose, min SDK 26+), package name `com.reztek.whatifportfolio`.
-Copy `app/src/main/java/com/reztek/whatifportfolio/**` over the generated package, replacing `MainActivity.kt`.
-In the Firebase Console, create a project, register the app with this package name, enable Authentication → Google, enable Firestore, and download `google-services.json` into `app/`.
-Copy the dependencies in `app/build.gradle.kts.snippet` into your real `app/build.gradle.kts`, and add the Google Services plugin classpath to the project-level `build.gradle.kts`.
-In `MainActivity.kt`, replace `webClientId` with the Web client OAuth ID from `google-services.json` (`client_type: 3`).
-Run on a physical device signed into a Google account.
-Running the Application
-Run the app configuration from Android Studio, or:
-```bash
-./gradlew :app:installDebug
-```
-Running Unit Tests
-```bash
-./gradlew :app:testDebugUnitTest
-```
-Building
-```bash
-./gradlew :app:assembleDebug
-```
-Project Structure
 
 ```
 app/src/main/java/com/reztek/whatifportfolio/
 ├── data/
+│   ├── auth/           BiometricStatus, BiometricAvailability
 │   ├── engine/         SimulationEngine (calculation logic)
 │   ├── local/          Room entities, DAO, repository
-│   ├── remote/          Retrofit network layer for the custom REST API
-│   ├── model/           Simulation data classes used by the UI
+│   ├── remote/         Retrofit network layer for the custom REST API
+│   ├── model/          Simulation data classes used by the UI
 │   └── preferences/    DataStore-backed settings
-├── navigation/          Destinations, WhatIfNavGraph, placeholder screens
+├── navigation/         Destinations, WhatIfNavGraph, placeholder screens
 ├── ui/
-│   ├── auth/            Sign-in screen + ViewModel
-│   ├── dashboard/       Dashboard screen + ViewModel
-│   ├── settings/        Settings screen + ViewModel
-│   ├── simulation/      Simulation Builder, Saved Simulations
-│   ├── chart/           PortfolioCanvasChart
-│   └── theme/           Compose theme
+│   ├── auth/           Sign-in screen + ViewModel
+│   ├── dashboard/      Dashboard screen + ViewModel
+│   ├── settings/       Settings screen + ViewModel
+│   ├── simulation/     Simulation Builder, Saved Simulations
+│   ├── chart/          PortfolioCanvasChart
+│   └── theme/          Compose theme
 ├── MainActivity.kt
 └── WhatIfApplication.kt
 
 app/src/test/java/com/reztek/whatifportfolio/
 ├── MainDispatcherRule.kt
+├── data/auth/BiometricStatusTest.kt
 ├── data/engine/SimulationEngineTest.kt
 ├── ui/auth/SignInViewModelTest.kt
 └── ui/dashboard/DashboardViewModelTest.kt
@@ -440,33 +391,48 @@ app/src/test/java/com/reztek/whatifportfolio/
 backend/
 ├── scripts/getTestToken.js
 └── ...  (Express API, deployed to Vercel)
+
+docs/
+├── MERGE.md
+├── RELEASE_NOTES.md
+├── AI_STATEMENT.md
+├── STORE_RELEASE.md
+└── screenshots/        App screenshots and release evidence
+
+.github/workflows/android.yml
 ```
-
-## Design Notes (UI/Navigation)
-
-- **Colour language:** teal (`TealPrimary`) / navy (`NavyDeep`) throughout, matching the app icon concept from Deliverable 2 and reserved for the nominal-vs-real-value distinction used in the results chart.
-- **Navigation graph:** fully wired for all 7 screens (Login → Dashboard → Settings, with an auth-gated start destination), even though `MainActivity` doesn't call it yet (see [Known Limitations](#known-limitations)). Placeholder screens exist purely so the app compiles and runs end-to-end on a device, satisfying the "must successfully compile and run" prototype requirement even before the rest of the team's screens land — swap each `PlaceholderScreen(...)` call in `WhatIfNavGraph.kt` for the real composable as it's completed.
-
-## Demonstration Video
-- **Final POE Video Walkthrough**: [Link to Demonstration Video Placeholder - Add YouTube/Google Drive Link Here]
 
 ---
 
-## Application Screenshots
+## Design Notes (UI/Navigation)
 
-| Authentication & Biometrics | Dashboard & Real-Time Chart |
-| :---: | :---: |
-| ![Auth & Biometric Prompt](docs/screenshots/01_auth_biometric.png) | ![Dashboard Canvas Chart](docs/screenshots/02_dashboard_chart.png) |
+- **Colour language:** teal (`TealPrimary`) / navy (`NavyDeep`) throughout, matching the app icon concept from Deliverable 2 and reserved for the nominal-vs-real-value distinction used in the results chart. Dark mode themes are supported.
+- **Navigation graph:** fully wired for all 7 screens (Login → Dashboard → Settings, with an auth-gated start destination), even though `MainActivity` may not call it yet (see [Known Limitations](#known-limitations)). Placeholder screens exist purely so the app compiles and runs end-to-end on a device, satisfying the "must successfully compile and run" prototype requirement even before the rest of the team's screens land — swap each `PlaceholderScreen(...)` call in `WhatIfNavGraph.kt` for the real composable as it's completed.
 
-| Offline Persistence & Sync | Multi-Language & Settings |
-| :---: | :---: |
-| ![Offline Sync Queue](docs/screenshots/03_offline_sync.png) | ![Language Settings](docs/screenshots/04_language_settings.png) |
+---
+
+## Technical Documentation Index
+
+| Document | Purpose |
+|---|---|
+| [`docs/MERGE.md`](docs/MERGE.md) | Branch integration strategy |
+| [`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md) | Part 3 release notes |
+| [`docs/AI_STATEMENT.md`](docs/AI_STATEMENT.md) | Generative AI statement |
+| [`docs/STORE_RELEASE.md`](docs/STORE_RELEASE.md) | Play Store release readiness, privacy compliance and signing setup |
+
+---
 
 ## AI Usage
 
 Generative AI was used as a support tool during the development of this project. It was mainly used to assist with Git and GitHub commands when pushing and managing code in the repository, as well as to help format and organise the README.md file so that the documentation remained consistent and uniform. The project code and implementation were developed and reviewed by the group members. AI-generated suggestions were checked and adapted before being used in the project. AI was not used to generate application features, UI screens, the simulation engine's logic, or any teammate's production code.
 
+The full statement is available in [`docs/AI_STATEMENT.md`](docs/AI_STATEMENT.md).
+
+---
+
 ## Team Contributions
+
+### Part 2
 
 | Person | Scope |
 |---|---|
@@ -475,25 +441,53 @@ Generative AI was used as a support tool during the development of this project.
 | Person 3 | Core Simulation Engine & Custom Features (calculation engine, chart, saved simulations) |
 | Person 4 | DevOps, Automated Testing, Documentation & Video |
 
+### Part 3 — Rubric Ownership
+
+#### Member 1 (Jordan) — Authentication & Custom Feature
+- **Native Biometric Authentication**: Integrated `BiometricPrompt` with support for fingerprint and facial authentication, dynamically linked to the user's active session.
+- **Biometric Error & Exception Handling**: Handled unsupported devices, un-enrolled states, cancellations, and failed attempts gracefully with appropriate logging.
+- **Asset Comparison Matrix (Feature 4)**: Implemented an interactive comparison UI enabling side-by-side evaluation of simulated asset performance metrics.
+
+#### Member 2 (Ash) — Offline Storage & Synchronisation
+- **Local Persistence (RoomDB)**: Built persistent local storage for simulations using Room entity models, DAOs, and database components.
+- **Offline Workflow**: Allowed simulation actions to be performed without network access, immediately displaying saved results.
+- **Connectivity Detection & Sync Queue**: Added network connectivity detectors to automatically flush pending offline actions to the hosted REST API upon reconnection.
+
+#### Member 3 (David) — Real-Time Notifications & Localization
+- **Firebase Cloud Messaging (FCM)**: Integrated FCM push notification handlers for foreground and background push notification triggers.
+- **Multi-Language Localization**: Added persistent language support for **English**, **isiXhosa**, and **Afrikaans** using standard Android string resources.
+- **UI & Accessibility Polish**: Enhanced layout consistency, navigation transitions, input validation feedback, and dark mode themes.
+
+#### Member 4 (Siddiq) — Integration, CI/CD, Documentation & Release
+- **GitHub Actions CI/CD Pipeline**: Configured `.github/workflows/android.yml` to automatically execute unit tests (`testDebugUnitTest`) and debug builds (`assembleDebug`) on remote pushes.
+- **Repository Hardening & Code Hygiene**: Resolved workspace merge issues, updated Gradle wrappers, deduplicated configurations, and maintained a zero-warning baseline build.
+- **Submission Documentation & Release Engineering**: Authored `MERGE.md`, `RELEASE_NOTES.md`, `AI_STATEMENT.md`, `STORE_RELEASE.md`, updated master project documentation, and prepared release assets for Play Store publication.
+
+---
+
 ## Known Limitations
 
-- **The navigation graph is not yet the app's entry point.** `WhatIfNavGraph` is fully implemented and wired (Login → Dashboard → Settings, with auth-gated start destination), but `MainActivity` currently calls `SimulationBuilderScreen()` directly in `setContent`, rather than `WhatIfNavGraph(...)`. As a result, sign-in, Dashboard, and Settings are not reachable from a fresh app launch yet, even though all three are implemented and unit tested individually.
-- **`SavedSimulationsScreen` is implemented but not routed.** The `saved_simulations` destination in `WhatIfNavGraph` still points at `PlaceholderScreen`, even though `SavedSimulationsScreen.kt` is a working screen backed by Room.
-- **Two separate `SimulationResult`/`SimulationPoint` definitions exist** — one in `data.engine` (used by `SimulationEngine`), one in `data.model` (imported by `PortfolioCanvasChart`). They currently have identical fields, but being different types, passing one where the other is expected will not compile. Worth consolidating before Part 3.
-- **The REST API/backend is not yet merged into `main`** — see [REST API / Backend](#rest-api--backend).
-- **`gradlew` has CRLF line endings**, which breaks the `#!/bin/sh` shebang on Linux/macOS (`./gradlew: No such file or directory`). This does not affect Windows, but GitHub Actions runs on `ubuntu-latest`, so this can affect CI runs depending on how the file was checked out. Recommend setting `core.autocrlf false` and re-committing the wrapper scripts if this causes CI failures.
+- **The navigation graph may not be the app's entry point.** `WhatIfNavGraph` is fully implemented and wired (Login → Dashboard → Settings, with auth-gated start destination), but `MainActivity` previously called `SimulationBuilderScreen()` directly in `setContent`, rather than `WhatIfNavGraph(...)`. *(Confirm against the final `MainActivity` and remove this item if it has been fixed.)*
+- **`SavedSimulationsScreen` routing.** The `saved_simulations` destination in `WhatIfNavGraph` previously pointed at `PlaceholderScreen`, even though `SavedSimulationsScreen.kt` is a working screen backed by Room. *(Confirm against the final nav graph and remove this item if it has been fixed.)*
+- **Two separate `SimulationResult`/`SimulationPoint` definitions exist** — one in `data.engine` (used by `SimulationEngine`), one in `data.model` (imported by `PortfolioCanvasChart`). They currently have identical fields, but being different types, passing one where the other is expected will not compile. Worth consolidating.
+- **`gradlew` line endings.** If `gradlew` has CRLF line endings, it breaks the `#!/bin/sh` shebang on Linux/macOS (`./gradlew: No such file or directory`). This does not affect Windows, but GitHub Actions runs on `ubuntu-latest`, so this can affect CI runs depending on how the file was checked out. Recommend setting `core.autocrlf false` and re-committing the wrapper scripts if this causes CI failures.
 - **`SettingsViewModel` is not unit tested** — see [Testing](#testing).
 - **`google-services.json` committed to the repo is a placeholder project** and will not authenticate against a real Firebase account; each developer needs their own for local testing (see [Installation and Setup](#installation-and-setup)).
+- **Market data limits** — equity daily history is limited to ~100 trading days and crypto history to 365 days due to free-tier API restrictions (see [REST API / Backend](#rest-api--backend)).
+
+---
 
 ## References
 
 - Google (2026). *Credential Manager* — Android Developers.
 - Google (2026). *Jetpack DataStore Preferences* — Android Developers.
 - Google (2026). *Navigation with Compose* — Android Developers.
+- Google (2026). *Biometric Authentication* — Android Developers.
 - Firebase (2026). *Authenticate Using Google Sign-In on Android.*
-- Alpha Vantage (2026). *Stock Time Series APIs.*
-- CoinGecko (2026). *CoinGecko API Documentation.*
+- Firebase (2026). *Firebase Cloud Messaging.*
 - Firebase (2026). *Firebase Admin SDK — Verify ID Tokens.*
 - Firebase (2026). *Cloud Firestore Security Rules.*
+- Alpha Vantage (2026). *Stock Time Series APIs.*
+- CoinGecko (2026). *CoinGecko API Documentation.*
 - Vercel (2026). *Deploying Node.js Serverless Functions.*
 - Square (2026). *Retrofit — A Type-Safe HTTP Client for Android.*
