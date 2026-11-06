@@ -3,7 +3,6 @@ package com.reztek.whatifportfolio.navigation
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -14,11 +13,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.reztek.whatifportfolio.ui.auth.SignInScreen
 import com.reztek.whatifportfolio.ui.dashboard.DashboardScreen
 import com.reztek.whatifportfolio.ui.settings.SettingsScreen
-import com.reztek.whatifportfolio.ui.simulation.CompareResultRoute
 import com.reztek.whatifportfolio.ui.simulation.CompareRoute
 import com.reztek.whatifportfolio.ui.simulation.CompareSelectionRoute
 import com.reztek.whatifportfolio.ui.simulation.SavedSimulationsScreen
 import com.reztek.whatifportfolio.ui.simulation.SimulationBuilderScreen
+import com.reztek.whatifportfolio.notifications.NotificationPermissionPrompt
 import com.reztek.whatifportfolio.ui.simulation.SimulationDetailScreen
 import com.reztek.whatifportfolio.ui.simulation.SimulationResultsScreen
 
@@ -31,6 +30,8 @@ fun WhatIfNavGraph(
     pendingSimulationId: String? = null,
     onPendingSimulationConsumed: () -> Unit = {}
 ) {
+    NotificationPermissionPrompt()
+
     val startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
         Log.d(TAG, "Existing Firebase session found — starting at Dashboard")
         Destination.Dashboard.route
@@ -96,11 +97,10 @@ fun WhatIfNavGraph(
                     navController.navigate(Destination.SimulationBuilder.createRoute(id))
                 },
                 onCompare = {
+                    Log.d(TAG, "Navigating SavedSimulations -> CompareSelection")
                     navController.navigate(Destination.CompareSelection.route) {
                         launchSingleTop = true
                     }
-                    Log.d(TAG, "Navigating SavedSimulations -> CompareSelection")
-                    navController.navigate(Destination.CompareSelection.route)
                 },
                 onBottomNavSelected = { destination ->
                     navController.navigateToBottomDestination(destination)
@@ -178,10 +178,8 @@ fun WhatIfNavGraph(
         composable(Destination.CompareSelection.route) {
             CompareSelectionRoute(
                 onCompareSelected = { firstId, secondId ->
-                    navController.navigate(Destination.CompareSimulation.createRoute(firstId, secondId))
-                onCompareSelected = { first, second ->
                     Log.d(TAG, "Navigating CompareSelection -> CompareSimulation")
-                    navController.navigate(Destination.CompareSimulation.createRoute(first, second))
+                    navController.navigate(Destination.CompareSimulation.createRoute(firstId, secondId))
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -194,11 +192,6 @@ fun WhatIfNavGraph(
                 navArgument(Destination.CompareSimulation.ARG_SECOND_ID) { type = NavType.StringType }
             )
         ) { entry ->
-            val firstId = entry.arguments?.getString(Destination.CompareSimulation.ARG_FIRST_ID).orEmpty()
-            val secondId = entry.arguments?.getString(Destination.CompareSimulation.ARG_SECOND_ID).orEmpty()
-            CompareResultRoute(
-                firstKey = firstId,
-                secondKey = secondId,
             CompareRoute(
                 firstId = entry.arguments?.getString(Destination.CompareSimulation.ARG_FIRST_ID).orEmpty(),
                 secondId = entry.arguments?.getString(Destination.CompareSimulation.ARG_SECOND_ID).orEmpty(),
@@ -229,9 +222,6 @@ private fun NavHostController.navigateToBottomDestination(destination: BottomNav
     if (destination == BottomNavDestination.HOME && popBackStack(route, inclusive = false)) return
     navigate(route) {
         popUpTo(Destination.Dashboard.route) { saveState = true }
-    Log.d(TAG, "Bottom nav -> ${destination.name}")
-    navigate(destination.destination.route) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
         restoreState = true
     }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -223,6 +224,7 @@ fun SimulationBuilderScreen(
             ) {
                 Column(
                     modifier = Modifier
+                        .navigationBarsPadding()
                         .padding(16.dp)
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -454,11 +456,11 @@ fun SimulationBuilderScreen(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateField(
                         label = stringResource(R.string.label_start_date),
                         value = state.startDate,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         onPick = { year, month, day ->
                             viewModel.onStartDateChanged(
                                 LocalDate.of(year, month + 1, day).toString()
@@ -468,7 +470,7 @@ fun SimulationBuilderScreen(
                     DateField(
                         label = stringResource(R.string.label_end_date),
                         value = state.endDate,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         onPick = { year, month, day ->
                             viewModel.onEndDateChanged(
                                 LocalDate.of(year, month + 1, day).toString()
