@@ -13,6 +13,7 @@ import com.reztek.whatifportfolio.notifications.FcmTokenRegistrar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -20,6 +21,7 @@ data class SettingsUiState(
     val accountEmail: String = "",
     val accountDisplayName: String = "",
     val preferences: UserPreferences = UserPreferences(),
+    val preferencesReady: Boolean = false,
     val isSavingCurrency: Boolean = false
 )
 
@@ -52,13 +54,14 @@ class SettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             preferencesRepository.userPreferencesFlow.collect { prefs ->
                 Log.d(TAG, "Preferences updated from DataStore: $prefs")
-                _uiState.value = _uiState.value.copy(preferences = prefs)
+                _uiState.value = _uiState.value.copy(preferences = prefs, preferencesReady = true)
             }
         }
 
-        // Refresh FCM token whenever Settings opens while signed in — PART3-DAVID
         viewModelScope.launch {
-            if (auth.currentUser != null) {
+            val notificationsOn = preferencesRepository.userPreferencesFlow.first().notificationsEnabled
+            LocaleHelper.setNotificationsAllowed(getApplication(), notificationsOn)
+            if (auth.currentUser != null && notificationsOn) {
                 FcmTokenRegistrar.registerCurrentToken()
             }
         }
@@ -92,17 +95,22 @@ class SettingsViewModel @JvmOverloads constructor(
         Log.i(TAG, "User toggled notifications: $enabled")
         viewModelScope.launch {
             preferencesRepository.setNotificationsEnabled(enabled)
+            LocaleHelper.setNotificationsAllowed(getApplication(), enabled)
             if (enabled) {
                 FcmTokenRegistrar.registerCurrentToken()
+            } else {
+                FcmTokenRegistrar.clearToken()
             }
         }
     }
 
     fun onLocaleSelected(tag: String) {
-        Log.i(TAG, "User selected locale: '$tag'")
+        val normalized = LocaleHelper.normalize(tag)
+        Log.i(TAG, "User selected locale: '$normalized'")
         viewModelScope.launch {
-            preferencesRepository.setAppLocale(tag)
-            LocaleHelper.applyAppLocale(tag)
+            preferencesRepository.setAppLocale(normalized)
+            LocaleHelper.applyAppLocale(getApplication(), normalized)
+            FcmTokenRegistrar.syncLocale(normalized)
         }
     }
 

@@ -42,7 +42,7 @@ class UserPreferencesRepository(private val context: Context) {
                 useDarkTheme = prefs[Keys.USE_DARK_THEME] ?: false,
                 biometricEnabled = prefs[Keys.BIOMETRIC_ENABLED] ?: false,
                 notificationsEnabled = prefs[Keys.NOTIFICATIONS_ENABLED] ?: true,
-                appLocale = prefs[Keys.APP_LOCALE] ?: ""
+                appLocale = LocaleHelper.normalize(prefs[Keys.APP_LOCALE] ?: LocaleHelper.ENGLISH)
             )
         }
 

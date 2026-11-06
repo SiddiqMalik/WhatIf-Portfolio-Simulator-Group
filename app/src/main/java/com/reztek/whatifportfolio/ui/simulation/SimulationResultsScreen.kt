@@ -32,11 +32,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.data.remote.dto.PerAssetResultDto
 import com.reztek.whatifportfolio.data.remote.dto.SimulationDto
+import com.reztek.whatifportfolio.ui.i18n.localize
 import com.reztek.whatifportfolio.ui.chart.ChartSeriesPoint
 import com.reztek.whatifportfolio.ui.chart.PortfolioCanvasChart
 import com.reztek.whatifportfolio.ui.components.FullScreenLoading
@@ -64,11 +68,12 @@ fun SimulationResultsScreen(
     val saving by viewModel.saving.collectAsState()
     val message by viewModel.message.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(simulationId) { viewModel.load(simulationId) }
     LaunchedEffect(message) {
         message?.let {
-            snackbar.showSnackbar(it)
+            snackbar.showSnackbar(localize(context, it))
             viewModel.consumeMessage()
         }
     }
@@ -76,10 +81,10 @@ fun SimulationResultsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Results", fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(R.string.results_title), fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 }
             )
@@ -93,7 +98,7 @@ fun SimulationResultsScreen(
                 Column(Modifier.padding(padding).padding(20.dp)) {
                     InlineErrorBanner(state.message)
                     Spacer(Modifier.height(16.dp))
-                    PrimaryActionButton("Try again", onClick = { viewModel.load(simulationId) })
+                    PrimaryActionButton(stringResource(R.string.dashboard_retry), onClick = { viewModel.load(simulationId) })
                 }
             }
             is SimulationDetailUiState.Ready -> {
@@ -154,16 +159,16 @@ fun ResultsContent(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             MetricHero(
-                label = "Final value",
+                label = stringResource(R.string.compare_final_value),
                 value = currency.format(simulation.finalValue),
-                supporting = "${"%.1f".format(simulation.percentReturn)}% nominal",
+                supporting = stringResource(R.string.metric_nominal, simulation.percentReturn),
                 valueColor = TealPrimary,
                 modifier = Modifier.weight(1f)
             )
             MetricHero(
-                label = "Real value",
+                label = stringResource(R.string.compare_real_value),
                 value = currency.format(simulation.realValue ?: 0.0),
-                supporting = "${"%.1f".format(simulation.realReturnPct ?: 0.0)}% real",
+                supporting = stringResource(R.string.metric_real, simulation.realReturnPct ?: 0.0),
                 valueColor = NavyDeep,
                 modifier = Modifier.weight(1f)
             )
@@ -187,7 +192,7 @@ fun ResultsContent(
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
                 .padding(16.dp)
         ) {
-            SectionHeader(title = "Performance", subtitle = "Nominal vs CPI-adjusted value")
+            SectionHeader(title = stringResource(R.string.results_performance), subtitle = stringResource(R.string.results_performance_subtitle))
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(
@@ -210,7 +215,7 @@ fun ResultsContent(
             )
         }
 
-        SectionHeader(title = "Asset breakdown", subtitle = "Contribution by holding")
+        SectionHeader(title = stringResource(R.string.results_asset_breakdown), subtitle = stringResource(R.string.results_asset_breakdown_subtitle))
 
         simulation.perAsset.orEmpty().forEach { asset ->
             AssetBreakdownRow(asset, currency)
@@ -218,7 +223,7 @@ fun ResultsContent(
 
         if (showSave) {
             PrimaryActionButton(
-                text = "Save simulation",
+                text = stringResource(R.string.action_save_simulation),
                 isLoading = saving,
                 onClick = onSave
             )

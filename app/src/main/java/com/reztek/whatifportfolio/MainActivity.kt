@@ -14,7 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.fragment.app.FragmentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.auth.FirebaseAuth
 import com.reztek.whatifportfolio.data.auth.BiometricAvailability
@@ -23,6 +23,7 @@ import com.reztek.whatifportfolio.data.preferences.UserPreferences
 import com.reztek.whatifportfolio.data.preferences.UserPreferencesRepository
 import com.reztek.whatifportfolio.navigation.WhatIfNavGraph
 import com.reztek.whatifportfolio.notifications.NotificationIntentParser
+import com.reztek.whatifportfolio.notifications.ensureSimulationNotificationChannel
 import com.reztek.whatifportfolio.ui.auth.AppLockViewModel
 import com.reztek.whatifportfolio.ui.auth.BiometricLockScreen
 import com.reztek.whatifportfolio.ui.auth.rememberBiometricPrompt
@@ -34,7 +35,7 @@ private const val TAG = "MainActivity"
 /**
  * Single-Activity host. Handles FCM tap deep-links — PART3-DAVID.
  */
-class MainActivity : FragmentActivity() {
+class MainActivity : AppCompatActivity() {
 
     // Survives rotation (so no re-lock) but not process death (so a restored app re-locks).
     private val appLockViewModel: AppLockViewModel by viewModels()
@@ -44,6 +45,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i(TAG, "onCreate")
+        ensureSimulationNotificationChannel(this)
         enableEdgeToEdge()
         pendingSimulationId = NotificationIntentParser.simulationIdFromIntent(intent)
 

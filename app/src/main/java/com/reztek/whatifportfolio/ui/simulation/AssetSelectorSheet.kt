@@ -34,6 +34,8 @@ import com.reztek.whatifportfolio.data.remote.dto.AssetSearchResultDto
 import com.reztek.whatifportfolio.ui.components.InlineErrorBanner
 import com.reztek.whatifportfolio.ui.components.PrimaryActionButton
 import com.reztek.whatifportfolio.ui.theme.TealPrimary
+import androidx.compose.ui.res.stringResource
+import com.reztek.whatifportfolio.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,12 +59,12 @@ fun AssetSelectorSheet(
                 .padding(bottom = 28.dp)
         ) {
             Text(
-                text = "Add assets",
+                text = stringResource(R.string.assets_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Search equities and crypto for your scenario.",
+                text = stringResource(R.string.assets_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
@@ -73,8 +75,8 @@ fun AssetSelectorSheet(
                 onValueChange = viewModel::onSearchQueryChanged,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Search") },
-                placeholder = { Text("e.g. AAPL, bitcoin") },
+                label = { Text(stringResource(R.string.label_search)) },
+                placeholder = { Text(stringResource(R.string.placeholder_asset_search)) },
                 shape = RoundedCornerShape(14.dp)
             )
 
@@ -147,11 +149,7 @@ fun AssetSelectorSheet(
             Spacer(Modifier.height(12.dp))
 
             PrimaryActionButton(
-                text = if (state.selected.isEmpty()) {
-                    "Add selected assets"
-                } else {
-                    "Add ${state.selected.size} selected asset${if (state.selected.size == 1) "" else "s"}"
-                },
+                text = stringResource(R.string.assets_add_selected, state.selected.size),
                 enabled = state.selected.isNotEmpty(),
                 onClick = {
                     onConfirm(viewModel.selectedAssets())

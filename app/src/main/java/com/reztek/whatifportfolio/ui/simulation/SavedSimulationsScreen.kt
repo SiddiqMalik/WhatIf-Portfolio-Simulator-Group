@@ -80,6 +80,11 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.reztek.whatifportfolio.ui.i18n.localize
+import com.reztek.whatifportfolio.ui.i18n.localized
+import com.reztek.whatifportfolio.R
 
 sealed interface SavedListItem {
     val key: String
@@ -281,11 +286,12 @@ fun SavedSimulationsScreen(
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
     val message by viewModel.message.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     var renameTarget by remember { mutableStateOf<SavedListItem.Remote?>(null) }
 
     LaunchedEffect(message) {
         message?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showSnackbar(localize(context, it))
             viewModel.consumeMessage()
         }
     }
@@ -323,16 +329,16 @@ fun SavedSimulationsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Saved simulations",
+                    stringResource(R.string.saved_title),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 // Entry point to the Compare feature (pick two saved runs).
-                OutlinedButton(onClick = onCompare) { Text("Compare") }
+                OutlinedButton(onClick = onCompare) { Text(stringResource(R.string.action_compare)) }
             }
             Text(
-                "Cloud historical runs and on-device future projections.",
+                stringResource(R.string.saved_cloud_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
             )
@@ -354,7 +360,7 @@ fun SavedSimulationsScreen(
                 is SavedListUiState.Error -> {
                     InlineErrorBanner(state.message)
                     Spacer(Modifier.height(12.dp))
-                    PrimaryActionButton("Retry", onClick = viewModel::refresh)
+                    PrimaryActionButton(stringResource(R.string.action_retry), onClick = viewModel::refresh)
                 }
                 is SavedListUiState.Ready -> {
                     OutlinedTextField(
@@ -362,7 +368,7 @@ fun SavedSimulationsScreen(
                         onValueChange = viewModel::onQueryChanged,
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        label = { Text("Search") },
+                        label = { Text(stringResource(R.string.label_search)) },
                         shape = RoundedCornerShape(14.dp)
                     )
                     Spacer(Modifier.height(12.dp))
@@ -372,8 +378,8 @@ fun SavedSimulationsScreen(
                     }
                     if (filtered.isEmpty()) {
                         EmptyState(
-                            title = "No saved simulations",
-                            subtitle = "Run a historical backtest or save a future projection from the builder."
+                            title = stringResource(R.string.saved_empty_title),
+                            subtitle = stringResource(R.string.saved_empty_subtitle)
                         )
                     } else {
                         LazyColumn(
@@ -448,12 +454,20 @@ fun SavedSimulationsScreen(
                                                 )
                                                 if (item is SavedListItem.Remote) {
                                                     IconButton(onClick = { renameTarget = item }) {
-                                                        Icon(Icons.Filled.Edit, contentDescription = "Rename")
+                                                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.cd_rename))
                                                     }
                                                 }
                                             }
                                             Text(
-                                                item.subtitle,
+                                                if (item is SavedListItem.Local) {
+                                                    stringResource(
+                                                        R.string.saved_local_subtitle,
+                                                        item.entity.years,
+                                                        item.entity.returnRate
+                                                    )
+                                                } else {
+                                                    item.subtitle
+                                                },
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                                             )
@@ -468,12 +482,12 @@ fun SavedSimulationsScreen(
                                                     fontWeight = FontWeight.Medium
                                                 )
                                                 StatusChip(
-                                                    text = item.chipLabel,
+                                                    text = localized(item.chipLabel),
                                                     color = if (item.chipPositive) SuccessGreen else ErrorRed
                                                 )
                                                 if (item is SavedListItem.Remote && item.syncStatus != SyncStatus.SYNCED) {
                                                     StatusChip(
-                                                        text = syncLabel(item.syncStatus),
+                                                        text = localized(syncLabel(item.syncStatus)),
                                                         color = if (
                                                             item.syncStatus == SyncStatus.FAILED_UPDATE ||
                                                             item.syncStatus == SyncStatus.FAILED_DELETE

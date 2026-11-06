@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.reztek.whatifportfolio.ui.components.EmptyState
+import androidx.compose.ui.res.stringResource
+import com.reztek.whatifportfolio.R
 
 /**
  * Selection UI for choosing exactly two saved simulations for comparison.
@@ -59,13 +61,13 @@ fun CompareSelectionScreen(
         bottomBar = {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
                 Text(
-                    "${selectedIds.size} of ${CompareSelectionRules.REQUIRED_COUNT} selected",
+                    stringResource(R.string.compare_selected_count, selectedIds.size, CompareSelectionRules.REQUIRED_COUNT),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (limitHint) {
                     Text(
-                        "Only two simulations can be compared. Deselect one to pick another.",
+                        stringResource(R.string.compare_only_two),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -80,7 +82,7 @@ fun CompareSelectionScreen(
                     enabled = CompareSelectionRules.canCompare(selectedIds),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Compare simulations")
+                    Text(stringResource(R.string.compare_title))
                 }
             }
         }
@@ -91,17 +93,17 @@ fun CompareSelectionScreen(
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Compare simulations",
+                    stringResource(R.string.compare_title),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 TextButton(onClick = onBack) {
-                    Text("Back")
+                    Text(stringResource(R.string.action_back))
                 }
             }
             Text(
-                "Choose two saved runs. You can compare cloud runs and on-device projections.",
+                stringResource(R.string.compare_choose_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -109,8 +111,8 @@ fun CompareSelectionScreen(
 
             if (savedItems.size < CompareSelectionRules.REQUIRED_COUNT) {
                 EmptyState(
-                    title = "Not enough saved simulations",
-                    subtitle = "Save at least two simulations before comparing."
+                    title = stringResource(R.string.compare_not_enough_title),
+                    subtitle = stringResource(R.string.compare_not_enough_subtitle)
                 )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -148,7 +150,7 @@ fun CompareSelectionScreen(
                                     )
                                 }
                                 Text(
-                                    if (item is SavedListItem.Local) "On device" else "Cloud",
+                                    if (item is SavedListItem.Local) stringResource(R.string.chip_on_device) else stringResource(R.string.chip_cloud),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.reztek.whatifportfolio.R
 import com.reztek.whatifportfolio.navigation.BottomNavDestination
+import com.reztek.whatifportfolio.ui.i18n.localized
 import com.reztek.whatifportfolio.ui.theme.ErrorRed
 
 @Composable
@@ -183,7 +184,7 @@ fun InlineErrorBanner(
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Text(
-            text = message,
+            text = localized(message),
             style = MaterialTheme.typography.bodyMedium,
             color = ErrorRed
         )
