@@ -54,19 +54,9 @@ The three user-defined features originally built for Part 2 are the **Simulation
 
 Watch the complete demonstration of the application running live on a physical Samsung Galaxy S22 (SM-S908E):
 
-👉 **[Watch the WhatIf Portfolio Simulator POE Demonstration Video](https://www.youtube.com/watch?v=YOUR_YOUTUBE_VIDEO_ID_HERE)**
+👉 **[Watch the WhatIf Portfolio Simulator POE Demonstration Video](https://youtu.be/pnGbNouCdPQ?si=vcx6SAjqd6QHJHd2)**
 
 *The video demonstrates user authentication, setting adjustments, API round-trips, offline modifications during Airplane Mode, and background FCM notification handling.*
-
----
-
-## 📱 Application Screenshots
-
-Below is visual evidence of the key application screens running on physical hardware:
-
-| Authentication & Biometrics | Portfolio Dashboard | Offline Sync & Saved Simulations | Settings & Preferences |
-| :---: | :---: | :---: | :---: |
-| ![Auth Screen](docs/screenshots/01_auth_biometric.png) | ![Dashboard](docs/screenshots/02_dashboard_chart.png) | ![Offline Sync](docs/screenshots/03_offline_sync.png) | ![Settings Screen](docs/screenshots/04_language_settings.png) |
 
 ---
 
